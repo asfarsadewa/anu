@@ -14,6 +14,9 @@ A mobile-first Indonesian town builder. Physics runs between monthly turns. DESI
 - `node serve.mjs` serves `public/` on http://127.0.0.1:5330/. `.claude/launch.json` has an `anu` config. `?level=<id>` opens a plot. `?still=icon` and `?still=card` show the picture alone.
 - `window.__game` exposes the game. `G.paused = true` stops the loop, then step with `world.step()` and `scene.stepPhysics()`, then `scene.render(dt)`. `G.crop(x, y, w, h, s)` shows an enlarged crop. The browser pane can show a stale frame, so wait before a screenshot and do not trust real-time timers when the pane is throttled.
 
+## Roads and steps
+- `writeTile` in `sim/world.js` shapes a road where the ground changes by one step. Two roads share the climb. A road running straight at empty ground climbs to meet it. A building that opens onto the road gets stone steps. A wall beside a road stays a wall. `test/roads.test.mjs` sweeps every one-step edge on every plot.
+
 ## Tests
 - `npm test` runs `tools/smoke.mjs` and `tools/autoplay.mjs`. After a change to `sim/` or to a plot, check that each good plan wins and each careless plan loses. Merapi and other plots with a spare margin may need retuning after any fluid change.
 - Plans obey the same limits as a player. Place a road before the building that needs it.

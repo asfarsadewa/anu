@@ -7,7 +7,7 @@ import { Transit } from './transit.js';
 export const C = 8, STEP = .5, DT = 1 / 60, MONTH_SECONDS = 10;
 const GR = 576, MGR = 120; // gravity for water and mud, in grid units
 const BUND = .08, PADDY = -.03, CANAL = -.09;
-export const M = { GRASS: 0, SOIL: 1, SAND: 2, ROCK: 3, FERTILE: 4, BUND: 5, PADDY: 6, CANAL: 7, PATH: 8, LEVEE: 9, SEABED: 10, RUBBLE: 11, SABO: 12, FIELD: 13, RIVERBED: 14, ROAD: 15, PARK: 16, URBAN: 17, RAIL: 18 };
+export const M = { GRASS: 0, SOIL: 1, SAND: 2, ROCK: 3, FERTILE: 4, BUND: 5, PADDY: 6, CANAL: 7, PATH: 8, LEVEE: 9, SEABED: 10, RUBBLE: 11, SABO: 12, FIELD: 13, RIVERBED: 14, ROAD: 15, PARK: 16, URBAN: 17, RAIL: 18, STEPS: 19 };
 
 export class World {
   constructor(level) {
@@ -106,7 +106,7 @@ export class World {
   }
   refreshPhysicsFields() {
     const { G, base, gr, mat, infil, fric, mudstop } = this;
-    const SOAK = [.0065, .0055, .014, .0005, .006, .0012, .0004, .0003, .001, 0, 0, .001, 0, .0055, 0, .0002, .022, .004, .002];
+    const SOAK = [.0065, .0055, .014, .0005, .006, .0012, .0004, .0003, .001, 0, 0, .001, 0, .0055, 0, .0002, .022, .004, .002, .0002];
     for (let i = 0; i < G * G; i++) {
       gr[i] = base[i]; infil[i] = mat[i] < SOAK.length ? SOAK[mat[i]] : .006; fric[i] = mat[i] === 100 ? 2 : 0; mudstop[i] = 0;
     }
@@ -167,14 +167,41 @@ export class World {
       this.forCells(tx, ty, 1, (i) => { mat[i] = M.FIELD; });
     } else if (t === 'jalan') {
       if (!b.bridge && !this.railTile[ty * N + tx]) {
-        // a road that meets a road one step up or down is a ramp. Each tile takes half of the climb, from its centre to the shared edge
-        const step = (dx, dy) => { const o = near(dx, dy), ax = tx + dx, ay = ty + dy; if (!o || !CATALOG[o.type].isRoad || o.ruin || o.bridge) return 0; const d = this.heights[ay * N + ax] - h; return Math.abs(d) === 1 ? d : 0; };
-        const e = step(1, 0), w = step(-1, 0), s = step(0, 1), n = step(0, -1), half = .36;
+        // What a road does at each side, where the ground is one step up or down:
+        // a road there shares the climb. Each tile takes half, from its centre to the shared edge.
+        // Empty ground straight ahead gets the whole climb, so the road meets the ground at the edge.
+        // A building that opens onto this road gets stone steps in the wall. A wall beside the road stays a wall.
+        const isRoad = (dx, dy) => { const o = near(dx, dy); return !!o && !!CATALOG[o.type].isRoad && !o.ruin && !o.bridge; };
+        const fromGate = (dx, dy) => { const g = this.level.gate; return !!g && g.x === tx && g.y === ty && !(tx + dx >= 0 && ty + dy >= 0 && tx + dx < N && ty + dy < N); };
+        const side = (dx, dy) => {
+          const ax = tx + dx, ay = ty + dy;
+          if (ax < 0 || ay < 0 || ax >= N || ay >= N || this.railTile[ay * N + ax]) return null;
+          const d = this.heights[ay * N + ax] - h;
+          if (Math.abs(d) !== 1) return null;
+          const o = near(dx, dy);
+          if (isRoad(dx, dy)) return { kind: 'share', d };
+          if (o && !o.ruin) return CATALOG[o.type].road && !CATALOG[o.type].isRoad ? { kind: 'steps', d } : null;
+          if (o && o.ruin) return null;
+          return isRoad(-dx, -dy) || fromGate(-dx, -dy) ? { kind: 'meet', d } : null;
+        };
+        const sides = [[1, 0, side(1, 0)], [-1, 0, side(-1, 0)], [0, 1, side(0, 1)], [0, -1, side(0, -1)]], half = .36;
         this.forCells(tx, ty, 1, (i, fx, fy) => {
-          let z = h * STEP - .006, u = fx - .5, v = fy - .5;
-          if (Math.abs(v) < half) { if (u > 0 && e) z += e * STEP * u; else if (u < 0 && w) z += w * STEP * -u; }
-          if (Math.abs(u) < half) { if (v > 0 && s) z += s * STEP * v; else if (v < 0 && n) z += n * STEP * -v; }
-          mat[i] = M.ROAD; base[i] = z;
+          let z = h * STEP - .006, m = M.ROAD;
+          for (const [dx, dy, sd] of sides) {
+            if (!sd) continue;
+            const along = (fx - .5) * dx + (fy - .5) * dy, across = Math.abs((fx - .5) * dy + (fy - .5) * dx);
+            if (sd.kind === 'steps') { // three treads, the highest at the wall
+              const tread = Math.floor((.5 - along) * C);
+              if (across < .19 && tread >= 0 && tread < 3) { z += sd.d * STEP * (3 - tread) / 4; m = M.STEPS; }
+              continue;
+            }
+            if (across >= half) continue;
+            if (sd.kind === 'share') { if (along > 0) z += sd.d * STEP * along; continue; }
+            // the whole climb: over the full tile if the road runs straight through it, or from the centre at a junction
+            const start = isRoad(dy, dx) || isRoad(-dy, -dx) || sides.some(q => q[2] && q[2].kind === 'share') ? 0 : -.5;
+            if (along > start) z += sd.d * STEP * Math.min(1, (along + .5 / C - start) / (.5 - start));
+          }
+          mat[i] = m; base[i] = z;
         });
       }
     } else if (t === 'taman') {

@@ -220,6 +220,7 @@ function topColor(world, x, y, h, ix, iy, inSim, farMat, heightAt, kind, i, fram
     case M.FIELD: c = pick(FIELDT, .5 + (noise(x * 3, y * 3) - .5) * .7 + (fine - .5) * .22, ix, iy); break;
     case M.PATH: c = pick(PATHT, .5 + (n - .5) * .6 + (fine - .5) * .3, ix, iy); break;
     case M.ROAD: c = roadColor(world, x, y, ix, iy, fine); break;
+    case M.STEPS: c = (ix * 3 + iy) % 7 === 0 ? STEP_DARK : STEP_LIGHT; break;
     case M.RAIL: { c = railColor(world, x, y, ix, iy, fine); const rb = world.buildingAt(Math.floor(x), Math.floor(y)); if (rb && rb.type === 'jalan') { const rc = roadColor(world, x, y, ix, iy, fine), fx = x - Math.floor(x) - .5, fy = y - Math.floor(y) - .5, a = world.railAxis.get((Math.floor(y) + 50) * 1000 + Math.floor(x) + 50) || {}; if (!(a.x ? Math.abs(Math.abs(fy) - .18) < .02 : Math.abs(Math.abs(fx) - .18) < .02)) c = rc; } break; }
     case M.URBAN: {
       const g = noise(x * 1.1 + 40, y * 1.1), g2 = noise(x * 5, y * 5);
@@ -259,6 +260,7 @@ function topColor(world, x, y, h, ix, iy, inSim, farMat, heightAt, kind, i, fram
   if (d > .02 && m !== 200 && !frame.noHaze) c = mixc(c, PAPER, hazeAmount(d));
   return c;
 }
+const STEP_LIGHT = rgb(204, 196, 178), STEP_DARK = rgb(176, 168, 150);
 // The land past the plot is a pale wash. It never competes with the plot, and it fades to paper far from it
 export const hazeAmount = d => (d < .02 ? 0 : Math.min(1, .3 + smooth(0, 1.5, d) * .42 + smooth(1.5, 12, d) * .28));
 
