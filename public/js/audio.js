@@ -1,6 +1,6 @@
 // Audio: a small gamelan synth for play, sample playback for effects, ambience and the main theme.
 // Melodies are original. The tuning is slendro and pelog, as cents above the tonic.
-import { VoiceQueue } from './voice-queue.js';
+import { VoiceQueue, playClip } from './voice-queue.js';
 let ctx = null, master = null, musicBus = null, sfxBus = null, ambBus = null, voiceBus = null;
 let muted = false, manifest = null;
 const buffers = new Map(), loading = new Map();
@@ -207,10 +207,7 @@ async function startLine(id) {
   if (!line) return null;
   const buf = ctx ? await load(`audio/voice/${id}.mp3`) : null;
   const ms = buf ? buf.duration * 1000 : 3200;
-  let finish, source = null;
-  const ended = new Promise(res => { finish = res; }), guard = setTimeout(() => finish(), ms + 900); // a suspended context never reports the end
-  if (buf) { source = ctx.createBufferSource(); source.buffer = buf; source.connect(voiceBus); source.onended = () => finish(); source.start(); }
-  return { line, ms, ended: ended.then(() => clearTimeout(guard)), stop() { if (source) { source.onended = null; try { source.stop(); } catch { /* it has ended */ } } finish(); } };
+  return { line, ...playClip({ ctx, buffer: buf, dest: voiceBus, ms, isHidden: () => document.hidden }) };
 }
 const voice = new VoiceQueue({ play: startLine, onDuck: on => duck(on ? .35 : 1) });
 export const speak = (id, onLine, opts) => voice.say(id, onLine, opts);

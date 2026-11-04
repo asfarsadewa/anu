@@ -223,15 +223,18 @@ function toast(text, kind = '') {
   while (host.children.length > 4) host.firstChild.remove();
   setTimeout(() => d.remove(), kind === 'log' ? 5200 : 3400);
 }
-let sayTimer = 0;
+let sayTimer = 0, sayLine = 0;
 const URGENT_LINE = /_warning$|_win$|^level_lost$/; // danger and the end of a plot do not wait their turn
-function silence() { A.cancelVoice(); clearTimeout(sayTimer); $('say').hidden = true; }
+function silence() { sayLine++; A.cancelVoice(); clearTimeout(sayTimer); $('say').hidden = true; }
 function bark(id) {
   if (G.seenBarks.has(id)) return;
   G.seenBarks.add(id);
-  A.speak(id, (line, ms) => {
+  A.speak(id, (line, ended) => {
     $('say-text').textContent = subtitle(line); $('say').style.top = $('hud').offsetHeight + 'px'; $('say').hidden = false;
-    clearTimeout(sayTimer); sayTimer = setTimeout(() => { $('say').hidden = true; }, Math.max(2600, ms + 500));
+    clearTimeout(sayTimer);
+    // the subtitle stays until the line has really ended, so it survives a hidden tab. A short line still gets time to read
+    const mine = ++sayLine, shown = performance.now();
+    ended.then(() => { if (mine === sayLine) sayTimer = setTimeout(() => { $('say').hidden = true; }, Math.max(400, 2600 - (performance.now() - shown))); });
   }, { urgent: URGENT_LINE.test(id) });
 }
 // The soundscape follows the town: what stands on the plot, the hour, the weather and the water
