@@ -431,6 +431,8 @@ function runForecast() {
 function closeForecast() { G.fcOn = false; scene.overlay.forecast = null; G.fcStamp++; $('forecast').textContent = 'Forecast'; }
 
 // The Start button runs one Turnstile check. The dev server has no /api, so the game starts at once there
+let tsWidget = null;
+function clearWidget() { if (tsWidget != null) { try { window.turnstile.remove(tsWidget); } catch { /* it is gone */ } tsWidget = null; } }
 async function gate() {
   let cfg;
   try { const r = await fetch('/api/config'); if (!r.ok) return true; cfg = await r.json(); } catch { return true; }
@@ -441,7 +443,8 @@ async function gate() {
     const s = document.createElement('script'); s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; s.onload = res; s.onerror = rej; document.head.append(s);
   });
   const token = await new Promise((res, rej) => {
-    window.turnstile.render('#ts', { sitekey: cfg.siteKey, action: cfg.action, appearance: 'interaction-only', callback: res, 'error-callback': () => rej(new Error('turnstile')), 'expired-callback': () => rej(new Error('expired')) });
+    const fail = () => { rej(new Error('turnstile')); return true; };
+    tsWidget = window.turnstile.render('#ts', { sitekey: cfg.siteKey, action: cfg.action, appearance: 'interaction-only', callback: res, 'error-callback': fail, 'expired-callback': fail, 'timeout-callback': fail, 'unsupported-callback': fail, 'before-interactive-callback': () => { $('title-sub').textContent = 'Complete the security check to start.'; } });
   });
   const r = await fetch('/api/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token }) });
   return r.ok;
@@ -456,7 +459,8 @@ $('start').addEventListener('click', async () => {
   let ok = false;
   try { ok = await gate(); } catch { ok = false; }
   starting = false; btn.disabled = false; btn.textContent = label;
-  if (!ok) { $('title-sub').textContent = 'The security check failed. Tap to try again.'; try { window.turnstile && window.turnstile.remove('#ts'); } catch { /* no widget */ } return; }
+  clearWidget();
+  if (!ok) { $('title-sub').textContent = 'The security check failed. Tap to try again.'; return; }
   A.refreshAudio(); A.playTheme(); showMap();
 });
 $('next').addEventListener('click', nextMonth);
