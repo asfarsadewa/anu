@@ -14,7 +14,7 @@ const SAVE = 'anu.save', PROGRESS = 'anu.progress', MUTE = 'anu.mute';
 const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } }, del(k) { try { localStorage.removeItem(k); } catch { /* private mode */ } } };
 
 const G = { screen: 'title', world: null, level: null, sel: null, speed: 1, placed: [], fcWorker: null, fcStamp: 0, fcOn: false, drag: null, seenBarks: new Set(), dissolveTo: 1, ended: false };
-window.__game = G; G.scene = scene;
+window.__game = G; G.scene = scene; G.audio = A;
 
 const TITLE_LEVEL = {
   id: 'title', N: 5, biome: 'basin', style: 'joglo', urban: true, roads: true, seed: 3, title: 'Anu', map: ['22222', '22222', '22211', '22111', '21111'],
@@ -39,6 +39,23 @@ function showTitle() {
   drawWordmark($('wordmark'), scaleForWordmark());
 }
 const scaleForWordmark = () => Math.max(2, Math.min(5, Math.floor(Math.min(innerWidth, 520) / 90)));
+
+/* ---------- the share card ---------- */
+// node tools/card.mjs renders this page to public/og.png. It is a real Salatiga, drawn by the engine
+function showCard() {
+  document.body.classList.add('sharecard');
+  $('start').hidden = true;
+  const L = levelById('salatiga'), w = new World({ ...L, mist: false, prewet: 14 });
+  const town = [['jalan', 5, 0], ['jalan', 4, 5], ['jalan', 4, 6], ['jalan', 4, 7], ['jalan', 5, 4], ['jalan', 6, 4], ['jalan', 7, 4], ['kampus', 6, 0], ['rusun', 4, 0], ['pasar', 2, 0], ['ruko', 3, 0], ['rumah', 1, 0], ['ruko', 0, 2], ['ruko', 0, 3], ['rumah', 0, 1], ['pasar', 5, 1], ['klenteng', 5, 2], ['masjid', 5, 3], ['gereja', 6, 3], ['ruko', 7, 3], ['ruko', 7, 2], ['rumah', 6, 2], ['ruko', 1, 5], ['sekolah', 0, 5], ['rumah', 5, 5], ['rumah', 6, 5], ['ruko', 7, 5], ['ruko', 3, 6], ['taman', 2, 6], ['rumah', 5, 6], ['bambu', 6, 6], ['rumah', 3, 7], ['taman', 5, 7], ['rumah', 1, 6], ['bambu', 0, 7]];
+  for (const [type, x, y] of town) if (!w.buildingAt(x, y)) w.place(type, x, y, { instant: true, free: true, style: L.style });
+  w.people = 110; w.assignResidents(); w.refreshPhysicsFields(); w.weather = WEATHER.cerah;
+  G.world = w; G.level = L; G.screen = 'card';
+  scene.shiftX = .19;
+  scene.setInsets(0, 0);
+  scene.setWorld(w);
+  scene.dissolve = 0; G.dissolveTo = 0;
+  drawWordmark($('wordmark'), 4);
+}
 
 /* ---------- the map ---------- */
 function showMap() {
@@ -97,7 +114,7 @@ function startLevel(L, save) {
   scene.setInsets($('hud').offsetHeight, $('tray').offsetHeight);
   scene.setWorld(w);
   scene.dissolve = 1; G.dissolveTo = 0;
-  A.stopTheme(); A.stopMood(); if (L.music) A.playTrack(L.music); else A.playMood('plan'); ambience();
+  A.prepareLevel(L); A.stopTheme(); A.stopMood(); if (L.music) A.playTrack(L.music); else A.playMood('plan'); ambience();
   bark(`l${LEVELS.indexOf(L) + 1}_intro`);
 }
 
@@ -413,7 +430,7 @@ function runForecast() {
   if (G.fcOn) { closeForecast(); refresh(); return; }
   A.sfx('ui_tap');
   if (!G.fcWorker) {
-    G.fcWorker = new Worker('js/sim/forecast-worker.js', { type: 'module' });
+    G.fcWorker = new Worker(typeof FORECAST_WORKER === 'string' ? FORECAST_WORKER : 'js/sim/forecast-worker.js', { type: 'module' });
     G.fcWorker.onmessage = e => {
       if (e.data.stamp !== G.fcStamp || !G.fcOn) return;
       scene.overlay.forecast = e.data;
@@ -554,7 +571,8 @@ applyMute(!!store.get(MUTE));
 const params = new URLSearchParams(location.search);
 if (params.has('level')) { showTitle(); G.startLevel(params.get('level')); } else showTitle();
 // ?still shows the picture alone, for the share card and the icons
-if (params.has('still')) { document.getElementById('title').hidden = params.get('still') !== 'card'; document.getElementById('start').hidden = true; document.getElementById('title-sub').hidden = params.get('still') !== 'card'; }
+if (params.get('still') === 'icon') { $('title').hidden = true; }
+if (params.get('still') === 'card') showCard();
 requestAnimationFrame(loop);
 // test hook: shows a crop of the game canvas, enlarged, over everything
 G.crop = (x, y, w, h, s = 3) => {

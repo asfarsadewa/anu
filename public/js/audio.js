@@ -11,18 +11,20 @@ export function unlockAudio() {
   if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
-  ctx = new AC({ latencyHint: 'playback' });
+  // 44.1 kHz is enough for this audio. A device default of 192 kHz would take over 4 times the memory for every clip
+  try { ctx = new AC({ latencyHint: 'playback', sampleRate: 44100 }); } catch { ctx = new AC({ latencyHint: 'playback' }); }
   master = ctx.createGain(); master.gain.value = muted ? 0 : 1;
   const comp = ctx.createDynamicsCompressor(); master.connect(comp); comp.connect(ctx.destination);
   for (const [name, v] of [['m', .9], ['s', .8], ['a', .6], ['v', 1]]) { const g = ctx.createGain(); g.gain.value = v; g.connect(master); if (name === 'm') musicBus = g; if (name === 's') sfxBus = g; if (name === 'a') ambBus = g; if (name === 'v') voiceBus = g; }
-  document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); });
+  document.addEventListener('visibilitychange', () => { if (!ctx) return; if (document.hidden) ctx.suspend(); else ctx.resume(); pauseStreams(document.hidden); });
   initEcho();
+  makePool();
   refreshAudio();
 }
 // Call this after the Turnstile check. Audio is not available before it
 export function refreshAudio() {
   if (!ctx || manifest) return;
-  fetch('audio/manifest.json').then(r => (r.ok ? r.json() : null)).then(m => { if (!m) return; manifest = m; if (pendingTheme) playTheme(); if (pendingAmb) setAmbience(pendingAmb); preload(); if (trackName && !trackSrc) { const n = trackName; trackName = null; playTrack(n); } if (moodNow) { const m = moodNow; moodNow = null; playMood(m); } }).catch(() => {});
+  fetch('audio/manifest.json').then(r => (r.ok ? r.json() : null)).then(m => { if (!m) return; manifest = m; if (pendingTheme) playTheme(); if (pendingAmb) setAmbience(pendingAmb); wantClips(pendingClips); if (trackName && !(stream && stream.name === trackName)) playTrack(trackName); if (moodNow) { const n = moodNow; moodNow = null; playMood(n); } }).catch(() => {});
 }
 export function setMuted(v) { muted = v; if (master) master.gain.setTargetAtTime(v ? 0 : 1, ctx.currentTime, .05); }
 export const isMuted = () => muted;
@@ -30,13 +32,35 @@ export const isMuted = () => muted;
 async function load(path) {
   if (buffers.has(path)) return buffers.get(path);
   if (loading.has(path)) return loading.get(path);
-  const p = fetch(path).then(r => { if (!r.ok) throw new Error(path); return r.arrayBuffer(); }).then(b => ctx.decodeAudioData(b)).then(buf => { buffers.set(path, buf); return buf; }).catch(() => null);
+  const p = fetch(path).then(r => { if (!r.ok) throw new Error(path); return r.arrayBuffer(); }).then(b => ctx.decodeAudioData(b)).then(buf => { buffers.set(path, buf); return buf; }).catch(() => null).finally(() => loading.delete(path));
   loading.set(path, p);
   return p;
 }
-const TOWN_IDS = ['horn', 'bakso', 'rooster', 'schoolbell', 'bedug', 'churchbell', 'templegong', 'boat', 'gull', 'tokek', 'dog', 'becak', 'train_horn', 'crossing_bell', 'train_pass', 'steam_chuff', 'bus_hiss'];
-const SFX_IDS = [...TOWN_IDS, 'hammer', 'saw', 'lash', 'brick', 'thud', 'tile', 'dig', 'splash', 'creak', 'collapse', 'kentongan', 'rumble', 'thunder', 'eruption', 'ui_tap', 'ui_place', 'ui_bad', 'harvest', 'cheer', 'pump', 'moped'];
-function preload() { for (const id of SFX_IDS) load(`audio/sfx/${id}.mp3`); }
+// The title needs a tap sound only. A plot loads the sounds its cards and events can make, and the last plot's sounds leave memory
+const UI_CLIPS = ['ui_tap', 'ui_place', 'ui_bad'], BUILD_CLIPS = ['hammer', 'saw', 'lash', 'brick', 'thud', 'tile', 'dig', 'cheer', 'collapse'];
+const CARD_CLIPS = { sawah: ['harvest'], saluran: ['splash'], sekolah: ['schoolbell'], kampus: ['schoolbell'], masjid: ['bedug'], ibadah: ['bedug'], gereja: ['churchbell'], klenteng: ['templegong'], dermaga: ['boat'], kincir: ['creak'], kentongan: ['kentongan'], halte: ['bus_hiss'], stasiun: ['bus_hiss'], pompa: ['pump'], rumah: ['bakso'] };
+const EVENT_CLIPS = { quake: ['rumble', 'kentongan'], eruption: ['eruption', 'kentongan'], wave: ['kentongan'], flood: ['splash'] };
+let pendingClips = UI_CLIPS;
+function wantClips(ids) { pendingClips = ids; if (ctx && manifest) for (const id of ids) load(`audio/sfx/${id}.mp3`); }
+function clipsFor(L) {
+  const out = new Set([...UI_CLIPS, ...BUILD_CLIPS, 'rooster', 'tokek', 'dog']);
+  const add = list => list && list.forEach(x => out.add(x));
+  (L.cards || []).forEach(c => add(CARD_CLIPS[c]));
+  (L.events || []).forEach(e => add(EVENT_CLIPS[e.kind]));
+  if (L.roads) add(['moped', 'horn', 'becak']);
+  if (L.sea != null) add(['gull']);
+  if ((L.weather || []).includes('lebat')) add(['thunder']);
+  if (L.slides) add(['collapse']);
+  if (L.rail) { add(['train_horn', 'crossing_bell', 'bus_hiss']); if (L.rail.some(r => r.kind === 'steam')) add(['steam_chuff']); }
+  return [...out];
+}
+export function prepareLevel(L) {
+  const ids = clipsFor(L), keep = new Set(ids.map(id => `audio/sfx/${id}.mp3`));
+  for (const path of [...buffers.keys()]) if (!keep.has(path)) buffers.delete(path);
+  for (const layer of ambLayers.values()) { if (layer.s) { try { layer.s.stop(); } catch { /* it stopped */ } } layer.g.disconnect(); }
+  ambLayers.clear();
+  wantClips(ids);
+}
 const FALLBACK = new Set(['hammer', 'saw', 'lash', 'brick', 'thud', 'tile', 'dig']);
 const lastPlay = new Map();
 // plays an effect. The same effect cannot stack too fast, so a crowd of hammers does not clip
@@ -74,30 +98,81 @@ export async function setAmbience(levels) { // { rain: 0..1, river: 0..1, wind:,
   }
 }
 
-/* ---------- main theme ---------- */
-let themeSrc = null, themeGain = null, pendingTheme = false;
-export async function playTheme() {
+/* ---------- streamed music ---------- */
+// Long music plays from audio elements, so only a small part of it sits in memory. Decoded, the Salatiga score takes over 50 MB.
+// A phone unlocks an element only inside a tap, so the pool is made during the first tap and reused for every track.
+const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+const pool = [], positions = new Map();
+let stream = null, watching = false;
+function makePool() {
+  for (let k = 0; k < 4; k++) {
+    const el = new Audio(); el.preload = 'auto'; el.src = SILENT;
+    const p = el.play(); if (p) p.then(() => el.pause()).catch(() => {});
+    const g = ctx.createGain(); g.gain.value = 0;
+    ctx.createMediaElementSource(el).connect(g); g.connect(musicBus);
+    pool.push({ el, g, busy: false });
+  }
+}
+function takeSlot() { return pool.find(p => !p.busy) || null; }
+function fade(slot, to, seconds) { slot.g.gain.cancelScheduledValues(ctx.currentTime); slot.g.gain.setTargetAtTime(to, ctx.currentTime, Math.max(.01, seconds / 3)); }
+function release(slot, seconds) {
+  fade(slot, 0, seconds);
+  setTimeout(() => { slot.el.pause(); slot.el.onerror = null; slot.el.src = SILENT; slot.busy = false; }, seconds * 1000 + 300);
+}
+function startSlot(name, level, seconds, at) {
+  const slot = takeSlot();
+  if (!slot) return null;
+  slot.busy = true;
+  slot.el.onerror = () => { if (stream && stream.slot === slot) { stream = null; release(slot, .01); if (moodNow) playSong(moodNow); } };
+  slot.el.src = `audio/${name}.mp3`;
+  if (at) slot.el.addEventListener('loadedmetadata', () => { try { slot.el.currentTime = at; } catch { /* the start is fine */ } }, { once: true });
+  const p = slot.el.play(); if (p) p.catch(() => {});
+  fade(slot, level, seconds);
+  return slot;
+}
+function streamTo(name, level = .9, seconds = 1.5, resume = false) {
+  if (!pool.length) return;
+  if (stream && stream.name === name) return;
+  if (stream) { positions.set(stream.name, stream.slot.el.currentTime); release(stream.slot, .9); stream = null; }
+  if (!name) return;
+  const slot = startSlot(name, level, seconds, resume ? positions.get(name) : 0);
+  if (slot) stream = { name, slot, level };
+  if (!watching) { watching = true; setInterval(watchLoop, 120); }
+}
+// the masters loop cleanly, so a short overlap hides the small gap an mp3 has at each end
+function watchLoop() {
+  if (!stream || !ctx || ctx.state !== 'running') return;
+  const { el } = stream.slot;
+  if (!el.duration || !isFinite(el.duration) || el.duration - el.currentTime > .42) return;
+  const next = startSlot(stream.name, stream.level, .2, .04);
+  if (!next) return;
+  release(stream.slot, .25);
+  stream.slot = next;
+}
+function pauseStreams(hidden) { for (const p of pool) if (p.busy) { if (hidden) p.el.pause(); else { const q = p.el.play(); if (q) q.catch(() => {}); } } }
+
+let pendingTheme = false;
+export function playTheme() {
   pendingTheme = true;
   if (!ctx || !manifest) return;
   stopSong();
-  if (themeSrc) return;
-  const buf = await load('audio/theme.mp3');
-  if (!buf || !pendingTheme) return;
-  themeGain = ctx.createGain(); themeGain.gain.value = 0; themeGain.gain.linearRampToValueAtTime(.9, ctx.currentTime + 1.5); themeGain.connect(musicBus);
-  themeSrc = ctx.createBufferSource(); themeSrc.buffer = buf; themeSrc.loop = true; themeSrc.connect(themeGain); themeSrc.start();
+  streamTo('theme', .9, 1.5);
 }
-// a level's own recorded score, in place of the synth
-let trackName = null, trackSrc = null, trackGain = null;
-export async function playTrack(name) {
-  stopSong(); stopTheme();
-  if (trackName === name) return;
-  stopTrack();
+export function stopTheme() {
+  pendingTheme = false;
+  if (stream && stream.name === 'theme') streamTo(null);
+}
+// a recorded score for a plot, or a gameplay bed. Going back to a track resumes it where it stopped
+let trackName = null;
+export function playTrack(name) {
+  stopSong(); pendingTheme = false;
   trackName = name;
   if (!ctx || !manifest) return;
-  const buf = await load(`audio/${name}.mp3`);
-  if (!buf || trackName !== name) return;
-  trackGain = ctx.createGain(); trackGain.gain.value = 0; trackGain.gain.linearRampToValueAtTime(.95, ctx.currentTime + 2.5); trackGain.connect(musicBus);
-  trackSrc = ctx.createBufferSource(); trackSrc.buffer = buf; trackSrc.loop = true; trackSrc.connect(trackGain); trackSrc.start();
+  streamTo(name, .95, 1.6, true);
+}
+export function stopTrack() {
+  trackName = null;
+  if (stream && stream.name !== 'theme') streamTo(null);
 }
 // gameplay music by mood. It uses the recorded bed if the game has one, and the synth if it does not
 let moodNow = null;
@@ -109,19 +184,11 @@ export function playMood(mood) {
   if (manifest.files && manifest.files.some(f => f.id === id)) playTrack(id); else playSong(mood);
 }
 export function stopMood() { moodNow = null; stopTrack(); stopSong(); }
-export function stopTrack() {
-  trackName = null;
-  if (!trackSrc) return;
-  const s = trackSrc, g = trackGain; trackSrc = null;
-  g.gain.setTargetAtTime(0, ctx.currentTime, .6);
-  setTimeout(() => { try { s.stop(); } catch { /* stopped */ } }, 3000);
-}
-export function stopTheme() {
-  pendingTheme = false;
-  if (!themeSrc) return;
-  const s = themeSrc, g = themeGain; themeSrc = null;
-  g.gain.setTargetAtTime(0, ctx.currentTime, .4);
-  setTimeout(() => { try { s.stop(); } catch { /* stopped */ } }, 2000);
+// what the audio holds in memory now, for measuring
+export function audioStats() {
+  let bytes = 0;
+  for (const b of buffers.values()) bytes += b.length * b.numberOfChannels * 4;
+  return { decodedMB: +(bytes / 1048576).toFixed(1), clips: buffers.size, stream: stream && stream.name, busy: pool.filter(p => p.busy).length, sampleRate: ctx && ctx.sampleRate, state: ctx && ctx.state };
 }
 export async function playCue(name) {
   if (!ctx) return;

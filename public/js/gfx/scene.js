@@ -105,7 +105,7 @@ export class Scene {
     let avg = 0; for (let i = 0; i < N * N; i++) avg += this.world.heights[i];
     avg = avg / (N * N) * STEP;
     const centerY = (ins.top + (innerHeight - ins.bottom)) / 2 * dpr / zoom;
-    this.frame.OX = Math.round(W / 2); this.frame.OY = Math.round(centerY - N * TH + avg * ZS);
+    this.frame.OX = Math.round(W / 2 + W * (this.shiftX || 0)); this.frame.OY = Math.round(centerY - N * TH + avg * ZS);
     this.terrainDirty = true; this.staticDirty = true; this.islandBake = null;
     this.buildDissolveMap();
   }

@@ -107,7 +107,7 @@ export function bakeTerrain(frame, world, opts = {}) {
       const inSim = x >= simMin && y >= simMin && x < simMax && y < simMax;
       const skip = partial && !inSim; // a partial bake only rewrites the simulated land. Far trees stay
       if (!skip) for (let iy = yTop - 1; iy >= iy0; iy--) {
-        const inPlot = x >= -.02 && y >= -.02 && x <= N + .02 && y <= N + .02, i = iy * W + ix, z = (OY + v * TH - (iy + .5)) / ZS, wall = h - z > (inPlot || island ? .05 : .15);
+        const inPlot = x >= -.02 && y >= -.02 && x <= N + .02 && y <= N + .02, i = iy * W + ix, z = (OY + v * TH - (iy + .5)) / ZS, cm = inSim ? world.mat[world.idx(x, y)] : 0, wall = h - z > (cm === M.ROAD || cm === M.RAIL ? .15 : inPlot || island ? .05 : .15);
         if (island && wall && z < zBottom + (noise(ix * .23, 3) - .5) * .5) { pix[i] = 0; kind[i] = 0; zb[i] = -1e9; continue; }
         const px = x, py = y;
         zb[i] = depthOf(px, py, wall ? z : h);

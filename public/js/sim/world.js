@@ -166,7 +166,17 @@ export class World {
     } else if (t === 'lapangan' || t === 'alun') {
       this.forCells(tx, ty, 1, (i) => { mat[i] = M.FIELD; });
     } else if (t === 'jalan') {
-      if (!b.bridge && !this.railTile[ty * N + tx]) this.forCells(tx, ty, 1, (i) => { mat[i] = M.ROAD; base[i] = this.tileHeight(tx, ty) * STEP - .006; });
+      if (!b.bridge && !this.railTile[ty * N + tx]) {
+        // a road that meets a road one step up or down is a ramp. Each tile takes half of the climb, from its centre to the shared edge
+        const step = (dx, dy) => { const o = near(dx, dy), ax = tx + dx, ay = ty + dy; if (!o || !CATALOG[o.type].isRoad || o.ruin || o.bridge) return 0; const d = this.heights[ay * N + ax] - h; return Math.abs(d) === 1 ? d : 0; };
+        const e = step(1, 0), w = step(-1, 0), s = step(0, 1), n = step(0, -1), half = .36;
+        this.forCells(tx, ty, 1, (i, fx, fy) => {
+          let z = h * STEP - .006, u = fx - .5, v = fy - .5;
+          if (Math.abs(v) < half) { if (u > 0 && e) z += e * STEP * u; else if (u < 0 && w) z += w * STEP * -u; }
+          if (Math.abs(u) < half) { if (v > 0 && s) z += s * STEP * v; else if (v < 0 && n) z += n * STEP * -v; }
+          mat[i] = M.ROAD; base[i] = z;
+        });
+      }
     } else if (t === 'taman') {
       this.forCells(tx, ty, 1, (i) => { mat[i] = M.PARK; });
     } else if (t === 'sabo') {
@@ -276,7 +286,8 @@ export class World {
   touchesRoad(x, y, foot = 1, reach = this.computeRoads()) {
     const { N } = this;
     for (let a = 0; a < foot; a++) for (const [px, py] of [[x + a, y - 1], [x + a, y + foot], [x - 1, y + a], [x + foot, y + a]]) {
-      if (px >= 0 && py >= 0 && px < N && py < N && reach[py * N + px]) return true;
+      // a building opens onto a road only if the ground between them is at most one step
+      if (px >= 0 && py >= 0 && px < N && py < N && reach[py * N + px] && Math.abs(this.heights[py * N + px] - this.heights[Math.min(N - 1, Math.max(0, y)) * N + Math.min(N - 1, Math.max(0, x))]) <= 1) return true;
     }
     return false;
   }

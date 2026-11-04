@@ -4,7 +4,8 @@
   "main": "./worker/index.mjs",
   "compatibility_date": "2026-10-23",
   "assets": {
-    "directory": "./public",
+    // node build.mjs writes the site to dist/. Only that folder is uploaded
+    "directory": "./dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/audio/*"]

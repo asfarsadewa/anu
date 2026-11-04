@@ -28,7 +28,7 @@ A mobile-first Indonesian town builder. Physics runs between monthly turns. DESI
 - `sim/transit.js` runs real vehicles and trains. Its state resets each month. Tune congestion there. `GAP`, `LANE_CAP` and the rush-hour spread move macet the most.
 
 ## Deploy
-- Cloudflare Worker with static assets at https://anu.asfarlab.fun/: `npm run deploy`. Deploying publishes the site. Get the user's go-ahead first.
+- Cloudflare Worker with static assets at https://anu.asfarlab.fun/: `npm run deploy`. `build.mjs` bundles and minifies the JS and CSS into `dist/` with hashed names. `serve.mjs` still runs the plain source from `public/`. Deploying publishes the site. Get the user's go-ahead first.
 - `worker/` gates audio behind one Turnstile check, using the widget of the werewolf repo. Its hostname list must include anu.asfarlab.fun. Never print secrets. Set them with `wrangler secret put` on stdin. `serve.mjs` has no /api, so local play skips the check.
 - Check with `npx wrangler deploy --dry-run`.
 
@@ -38,4 +38,5 @@ A mobile-first Indonesian town builder. Physics runs between monthly turns. DESI
 - Place names and Indonesian building names are proper nouns.
 
 ## Audio
+- Long music streams from a pool of audio elements made during the first tap, which phones require. Effects and loops are decoded, and `prepareLevel` frees what the last plot used. `G.audio.audioStats()` shows what is in memory.
 - `tools/audio/` regenerates assets. Raw takes live in `.audio-src/`, which git ignores. `PROMPTS.md` logs every prompt. No person has listened to the audio yet. `tools/audio/PROMPTS.md` lists what needs a human ear.

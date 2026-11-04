@@ -18,6 +18,23 @@ async function startSession(req, env) {
   return json({ ok: true }, 200, { 'set-cookie': `${COOKIE}=${session}; Max-Age=${SESSION_TTL_MS / 1000}; Path=/; HttpOnly; Secure; SameSite=Lax` });
 }
 
+// Audio elements ask for byte ranges, and Safari will not play without them. The browser may keep audio. A shared cache must not, or it would serve audio with no session
+export async function withRange(req, res) {
+  const headers = new Headers(res.headers);
+  headers.set('cache-control', 'private, max-age=604800');
+  headers.set('accept-ranges', 'bytes');
+  if (res.status !== 200) return new Response(res.body, { status: res.status, headers });
+  const m = /^bytes=(\d*)-(\d*)$/.exec(req.headers.get('range') || '');
+  if (!m || (!m[1] && !m[2])) return new Response(res.body, { status: 200, headers });
+  const body = await res.arrayBuffer(), size = body.byteLength;
+  let start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2])), end = m[1] && m[2] ? Number(m[2]) : size - 1;
+  end = Math.min(end, size - 1);
+  if (start >= size || start > end) { headers.set('content-range', `bytes */${size}`); return new Response(null, { status: 416, headers }); }
+  headers.set('content-range', `bytes ${start}-${end}/${size}`);
+  headers.set('content-length', String(end - start + 1));
+  return new Response(body.slice(start, end + 1), { status: 206, headers });
+}
+
 export default {
   async fetch(req, env) {
     const { pathname } = new URL(req.url);
@@ -30,10 +47,7 @@ export default {
     if (pathname.startsWith('/api/')) return json({ ok: false }, 404);
     if (pathname.startsWith('/audio/')) {
       if (!await hasSession(env, req)) return json({ ok: false, error: 'session' }, 401);
-      const res = await env.ASSETS.fetch(req), out = new Response(res.body, res);
-      // the browser may keep it. A shared cache must not, or it would serve audio with no session
-      out.headers.set('cache-control', 'private, max-age=604800');
-      return out;
+      return withRange(req, await env.ASSETS.fetch(new Request(req.url, { headers: { accept: req.headers.get('accept') || '*/*' } })));
     }
     return env.ASSETS.fetch(req);
   },

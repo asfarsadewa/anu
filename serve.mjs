@@ -13,8 +13,14 @@ createServer(async (req, res) => {
   const file = normalize(join(root, path.endsWith('/') ? path + 'index.html' : path));
   if (!file.startsWith(root.replace(/[\\/]$/, '') + sep) && file !== root) { res.writeHead(403).end(); return; }
   try {
-    const body = await readFile(file);
-    res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
+    const body = await readFile(file), type = types[extname(file)] || 'application/octet-stream', m = /^bytes=(\d+)-(\d*)$/.exec(req.headers.range || '');
+    if (m) { // the same byte ranges as the Worker, so audio elements can seek
+      const start = Number(m[1]), end = Math.min(m[2] ? Number(m[2]) : body.length - 1, body.length - 1);
+      res.writeHead(206, { 'content-type': type, 'accept-ranges': 'bytes', 'content-range': `bytes ${start}-${end}/${body.length}`, 'cache-control': 'no-store' });
+      res.end(body.subarray(start, end + 1));
+      return;
+    }
+    res.writeHead(200, { 'content-type': type, 'accept-ranges': 'bytes', 'cache-control': 'no-store' });
     res.end(body);
   } catch { res.writeHead(404).end('Not found'); }
 }).listen(port, host, () => console.log(`http://${host}:${port}/`));

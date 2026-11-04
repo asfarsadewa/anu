@@ -52,6 +52,8 @@ Homes and shops must touch a road that reaches the gate. A pasar brings rice. Pe
 | `public/js/audio.js` | The gamelan synth and sample playback |
 | `public/audio/` | Generated music, effects and voice |
 | `worker/` | The Cloudflare Worker: Turnstile check, session cookie, audio gate |
+| `build.mjs` | Writes the minified site to `dist/` for deployment |
+| `tools/card.mjs` | Renders the share card `public/og.png` from the game |
 | `tools/autoplay.mjs` | Plays a good plan and a careless plan on every plot |
 | `tools/smoke.mjs` | Runs every plot and checks the fluids |
 | `tools/audio/` | Audio generation scripts and prompts |

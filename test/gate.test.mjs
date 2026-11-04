@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { issueSession, parseHostnames, verifySession, verifyTurnstile } from '../worker/gate.mjs';
+import { withRange } from '../worker/index.mjs';
 
 const respond = (body, status = 200) => async () => new Response(JSON.stringify(body), { status });
 const base = { secret: 's', token: 't', expectedAction: 'start', expectedHostnames: parseHostnames('anu.asfarlab.fun') };
@@ -25,4 +26,17 @@ test('a session verifies, and a changed or old one does not', async () => {
   assert.equal(await verifySession(key, token.slice(0, -2) + 'xx', now + 1), null);
   assert.equal(await verifySession(key, token, now + 8 * 24 * 3600 * 1000), null);
   assert.equal(await verifySession(key, null, now), null);
+});
+
+test('audio answers byte ranges', async () => {
+  const file = () => new Response(new Uint8Array(100).map((_, i) => i), { status: 200, headers: { 'content-type': 'audio/mpeg' } });
+  const ask = range => withRange(new Request('https://x/audio/a.mp3', range ? { headers: { range } } : {}), file());
+  const whole = await ask();
+  assert.equal(whole.status, 200); assert.equal(whole.headers.get('accept-ranges'), 'bytes'); assert.match(whole.headers.get('cache-control'), /^private/);
+  const part = await ask('bytes=10-19');
+  assert.equal(part.status, 206); assert.equal(part.headers.get('content-range'), 'bytes 10-19/100');
+  assert.deepEqual([...new Uint8Array(await part.arrayBuffer())].slice(0, 2), [10, 11]);
+  assert.equal((await ask('bytes=90-')).headers.get('content-range'), 'bytes 90-99/100');
+  assert.equal((await ask('bytes=-5')).headers.get('content-range'), 'bytes 95-99/100');
+  assert.equal((await ask('bytes=200-')).status, 416);
 });
