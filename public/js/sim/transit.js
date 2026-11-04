@@ -305,10 +305,10 @@ export class Transit {
     this.macetLast = rate; this.tripsLast = this.trips;
     this.tripsBest = Math.max(this.tripsBest, this.trips);
     const w = this.world;
-    if (this.trips || this.trippersAny()) log.push(`People made ${this.trips} trips. Macet was ${Math.round(rate * 100)}%.`);
-    if (this.cargoThisMonth) log.push(`The train brought ${this.cargoThisMonth * (this.lines[0].def.freight || 0)} rice.`);
-    if (this.stalls) { log.push('The train could not climb the slope.'); this.stalls = 0; }
-    if (this.level.trucks) for (const b of w.buildings) if (CATALOG[b.type].market && CATALOG[b.type].road && b.done && !b.ruin && b.delivered === false) { b.noTruck = true; log.push('The truck did not reach the pasar. Macet held it.'); }
+    if (this.trips || this.trippersAny()) log.push(['log.trips', { n: this.trips, p: Math.round(rate * 100) }]);
+    if (this.cargoThisMonth) log.push(['log.train', { n: this.cargoThisMonth * (this.lines[0].def.freight || 0) }]);
+    if (this.stalls) { log.push(['log.stalled']); this.stalls = 0; }
+    if (this.level.trucks) for (const b of w.buildings) if (CATALOG[b.type].market && CATALOG[b.type].road && b.done && !b.ruin && b.delivered === false) { b.noTruck = true; log.push(['log.truck']); }
   }
   trippersAny() { return this.world.people > 0; }
   // where a vehicle is now

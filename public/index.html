@@ -31,15 +31,15 @@
 <link rel="stylesheet" href="anu.css">
 </head>
 <body>
-<canvas id="c" aria-label="The town and the land around it."></canvas>
+<canvas id="c" data-t-aria="ui.aTown" aria-label="The town and the land around it."></canvas>
 
 <header id="hud" hidden>
   <div id="hud-row">
-    <button id="menu" class="icon-btn" type="button" aria-label="Open the menu"><span class="burger"></span></button>
-    <div class="stat" id="s-people" role="button" tabindex="0"><img alt="People" data-icon="person"><b>0</b><small>/0</small></div>
-    <div class="stat" id="s-rice" role="button" tabindex="0"><img alt="Rice" data-icon="rice"><b>0</b><small>/0</small></div>
-    <div class="stat" id="s-labour" role="button" tabindex="0"><img alt="Labour" data-icon="labour"><b>0</b></div>
-    <button id="mute" class="icon-btn" type="button" aria-pressed="false" aria-label="Sound"><img alt="" data-icon="sound"></button>
+    <button id="menu" class="icon-btn" type="button" data-t-aria="ui.aMenu" aria-label="Open the menu"><span class="burger"></span></button>
+    <div class="stat" id="s-people" role="button" tabindex="0"><img alt="People" data-t-alt="ui.aPeople" data-icon="person"><b>0</b><small>/0</small></div>
+    <div class="stat" id="s-rice" role="button" tabindex="0"><img alt="Rice" data-t-alt="ui.aRice" data-icon="rice"><b>0</b><small>/0</small></div>
+    <div class="stat" id="s-labour" role="button" tabindex="0"><img alt="Labour" data-t-alt="ui.aLabour" data-icon="labour"><b>0</b></div>
+    <button id="mute" class="icon-btn" type="button" aria-pressed="false" data-t-aria="ui.aSound" aria-label="Sound"><img alt="" data-icon="sound"></button>
   </div>
   <button id="goal" type="button"><span id="goal-text"></span></button>
   <div id="months" role="list"></div>
@@ -49,28 +49,29 @@
 <div id="say" hidden><img id="say-face" alt=""><p><b>Bu Lurah</b><span id="say-text"></span></p></div>
 
 <footer id="tray" hidden>
-  <div id="cards" role="listbox" aria-label="Buildings"></div>
+  <div id="cards" role="listbox" data-t-aria="ui.aBuildings" aria-label="Buildings"></div>
   <div id="actions">
-    <button id="undo" type="button">Undo</button>
-    <button id="forecast" type="button">Forecast</button>
+    <button id="undo" type="button" data-t="ui.undo">Undo</button>
+    <button id="forecast" type="button" data-t="ui.forecast">Forecast</button>
     <button id="next" type="button">Next month</button>
   </div>
 </footer>
 <footer id="runbar" hidden>
   <div id="run-label"></div>
-  <button id="speed" type="button">Fast</button>
+  <button id="speed" type="button" data-t="ui.fast">Fast</button>
 </footer>
 
 <section id="title" hidden>
   <canvas id="wordmark" width="10" height="10" aria-label="Anu"></canvas>
-  <p id="title-sub">A town builder set in Indonesia.</p>
+  <p id="title-sub" data-t="ui.titleSub">A town builder set in Indonesia.</p>
   <div id="ts"></div>
-  <button id="start" type="button">Tap to start</button>
+  <div id="lang" role="group" aria-label="Language / Bahasa"><button type="button" data-lang="en" lang="en">English</button><button type="button" data-lang="id" lang="id">Bahasa Indonesia</button></div>
+  <button id="start" type="button" data-t="ui.start">Tap to start</button>
   <a id="credit" href="https://x.com/ashthepeasant" target="_blank" rel="noopener">@ashthepeasant</a>
 </section>
 
 <section id="map" hidden>
-  <canvas id="map-c" width="360" height="170" aria-label="Map of Indonesia"></canvas>
+  <canvas id="map-c" width="360" height="170" data-t-aria="ui.aMap" aria-label="Map of Indonesia"></canvas>
   <ol id="levels"></ol>
 </section>
 

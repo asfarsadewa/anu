@@ -189,33 +189,33 @@ export class World {
   /* ---------- placing ---------- */
   canPlace(type, x, y) {
     const { N } = this, cat = CATALOG[type], foot = cat.foot || 1;
-    if (x < 0 || y < 0 || x + foot > N || y + foot > N) return 'The tile is outside the plot.';
+    if (x < 0 || y < 0 || x + foot > N || y + foot > N) return 'place.outside';
     for (let a = 0; a < foot; a++) for (let b = 0; b < foot; b++) {
       const o = this.buildingAt(x + a, y + b);
-      if (o && !((cat.needs === o.type || (type === 'layang' && o.type === 'jalan')) && !o.ruin)) return o.ruin ? 'Clear the rubble first.' : 'A building is on this tile.';
-      if (foot > 1 && this.tileHeight(x + a, y + b) !== this.tileHeight(x, y)) return 'The ground must be level.';
+      if (o && !((cat.needs === o.type || (type === 'layang' && o.type === 'jalan')) && !o.ruin)) return o.ruin ? 'place.rubble' : 'place.occupied';
+      if (foot > 1 && this.tileHeight(x + a, y + b) !== this.tileHeight(x, y)) return 'place.level';
     }
-    if (cat.needs && !this.buildingAt(x, y)) return 'Build this on a canal.';
-    for (let a = 0; a < foot; a++) for (let c = 0; c < foot; c++) if (this.railTile[(y + c) * N + x + a] && !(type === 'jalan' || cat.onRail)) return 'The rail is on this tile.';
-    if (cat.onRail && !this.railTile[y * N + x]) return 'Build this on a rail tile.';
-    if (cat.nearRail) { let near = false; for (let a = -1; a <= foot; a++) for (let c = -1; c <= foot; c++) { const p = x + a, q = y + c; if ((a < 0 || c < 0 || a >= foot || c >= foot) && p >= 0 && q >= 0 && p < N && q < N && this.railTile[q * N + p]) near = true; } if (!near) return 'Build this next to the rail.'; }
-    if (this.level.roads && cat.road && !this.touchesRoad(x, y, foot)) return 'Build this next to a road that reaches the gate.';
-    if (cat.isRoad && this.level.roads && !this.touchesRoad(x, y, 1) && !(this.level.gate && this.level.gate.x === x && this.level.gate.y === y)) return 'A road must join a road that reaches the gate.';
-    if (this.springNear(x, y)) return 'The spring is on this tile.';
+    if (cat.needs && !this.buildingAt(x, y)) return 'place.canal';
+    for (let a = 0; a < foot; a++) for (let c = 0; c < foot; c++) if (this.railTile[(y + c) * N + x + a] && !(type === 'jalan' || cat.onRail)) return 'place.rail';
+    if (cat.onRail && !this.railTile[y * N + x]) return 'place.onRail';
+    if (cat.nearRail) { let near = false; for (let a = -1; a <= foot; a++) for (let c = -1; c <= foot; c++) { const p = x + a, q = y + c; if ((a < 0 || c < 0 || a >= foot || c >= foot) && p >= 0 && q >= 0 && p < N && q < N && this.railTile[q * N + p]) near = true; } if (!near) return 'place.nearRail'; }
+    if (this.level.roads && cat.road && !this.touchesRoad(x, y, foot)) return 'place.road';
+    if (cat.isRoad && this.level.roads && !this.touchesRoad(x, y, 1) && !(this.level.gate && this.level.gate.x === x && this.level.gate.y === y)) return 'place.roadJoin';
+    if (this.springNear(x, y)) return 'place.spring';
     const deep = this.tileDepth(x, y);
     if (this.sea != null) {
       const under = this.tileHeight(x, y) * STEP < this.sea;
-      if (cat.place === 'shallow' && !under) return 'Build this in shallow water.';
-      if (cat.place === 'shallow' && this.sea - this.tileHeight(x, y) * STEP > .35) return 'The water is too deep here.';
-      if (cat.place !== 'shallow' && cat.place !== 'shore' && under) return 'The water is too deep here.';
+      if (cat.place === 'shallow' && !under) return 'place.shallow';
+      if (cat.place === 'shallow' && this.sea - this.tileHeight(x, y) * STEP > .35) return 'place.deep';
+      if (cat.place !== 'shallow' && cat.place !== 'shore' && under) return 'place.deep';
       if (cat.place === 'shore') {
-        if (under) return 'Build this on land at the shore.';
+        if (under) return 'place.shoreLand';
         const shore = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([p, q]) => x + p >= 0 && y + q >= 0 && x + p < N && y + q < N && this.tileHeight(x + p, y + q) * STEP < this.sea);
-        if (!shore) return 'Build this next to the sea.';
+        if (!shore) return 'place.shoreNext';
       }
-    } else if (cat.place === 'shallow' || cat.place === 'shore') return 'This plot has no sea.';
-    if ((this.level.river && this.onRiver(x, y)) && !['tanggul', 'saluran', 'sabo', 'jalan'].includes(type)) return 'The river is on this tile.';
-    if (type !== 'tanggul' && type !== 'sabo' && type !== 'jalan' && !cat.place && deep > .3 && !cat.needs) return 'The water is too deep here.';
+    } else if (cat.place === 'shallow' || cat.place === 'shore') return 'place.noSea';
+    if ((this.level.river && this.onRiver(x, y)) && !['tanggul', 'saluran', 'sabo', 'jalan'].includes(type)) return 'place.river';
+    if (type !== 'tanggul' && type !== 'sabo' && type !== 'jalan' && !cat.place && deep > .3 && !cat.needs) return 'place.deep';
     return null;
   }
   onRiver(x, y) { const i = this.idx(x + .5, y + .5); return i >= 0 && this.mat0[i] === M.RIVERBED; }
@@ -681,7 +681,7 @@ export class World {
       const force = standing + s.mud * 2 + standing * s.speed * s.speed * .3;
       const limit = cat.place === 'shore' ? cat.str * 1.5 : cat.str;
       if (limit < 9 && force > limit) b.stress = (b.stress || 0) + DT; else if (b.stress) b.stress = Math.max(0, b.stress - DT * .5);
-      if (b.stress > (cat.wall ? 1 : .7)) { this.destroy(b, s.mud > .08 ? 'The mud destroyed' : 'The water destroyed'); continue; }
+      if (b.stress > (cat.wall ? 1 : .7)) { this.destroy(b, s.mud > .08 ? 'mud' : 'water'); continue; }
       if (s.depth + s.mud > cat.floor && cat.floor < 9) b.soakedNow = true;
       // quake
       if (this.quake && cat.freq) {
@@ -691,14 +691,14 @@ export class World {
         const scale = b.done ? 1 : 1.6;
         b.driftV += DT * (-a * scale - 2 * cat.zeta * om * b.driftV - om * om * b.drift);
         b.drift += DT * b.driftV;
-        if (Math.abs(b.drift) > cat.drift) { this.destroy(b, 'The quake destroyed'); continue; }
+        if (Math.abs(b.drift) > cat.drift) { this.destroy(b, 'quake'); continue; }
       } else { b.driftV *= .96; b.drift *= .96; }
       // ash
       if (cat.ash < 9) {
         const i = this.idx(cx, cy);
         const load = i >= 0 ? this.ash[i] : 0;
         b.ashLoad = load;
-        if (load > cat.ash) { this.destroy(b, 'The ash load destroyed'); continue; }
+        if (load > cat.ash) { this.destroy(b, 'ash'); continue; }
       }
     }
     if (this.quake || this.plume) this.pushDead();
@@ -812,11 +812,11 @@ export class World {
     this.forCells(x, y, 1, (i) => { this.ground0[i] -= STEP; this.mat0[i] = M.SOIL; this.m[i] += STEP * .55; });
     for (const [a, c] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) { const ax = x + a, ay = y + c; if (ax >= 0 && ay >= 0 && ax < N && ay < N) this.moist[ay * N + ax] = .3; }
     const b = this.buildingAt(x, y);
-    if (b) this.destroy(b, 'The landslide destroyed');
+    if (b) this.destroy(b, 'landslide');
     this.touch(x, y);
     this.slides = (this.slides || 0) + 1;
     this.fx.push({ kind: 'slide', x, y });
-    this.log.push('The slope failed.');
+    this.log.push(['log.slopeFailed']);
   }
   destroy(b, why) {
     if (b.ruin) return;
@@ -828,8 +828,8 @@ export class World {
       if (!this.evac.length) this.people = Math.max(0, this.people - gone);
       b.residents = 0;
     }
-    if (cat.home && /landslide|mud/.test(why)) this.slideHits = (this.slideHits || 0) + 1;
-    this.log.push(`${why} a ${cat.name.toLowerCase()}.`);
+    if (cat.home && (why === 'landslide' || why === 'mud')) this.slideHits = (this.slideHits || 0) + 1;
+    this.log.push(['log.destroyed.' + why, { name: cat.name.toLowerCase() }]);
     this.touch(b.x, b.y, cat.foot || 1);
     this.fx.push({ kind: 'collapse', b, why });
   }
@@ -862,7 +862,7 @@ export class World {
     for (const b of this.buildings) {
       if (b.type !== 'sawah' || b.ruin || !b.done) continue;
       const frac = b.wet / MONTH_SECONDS;
-      if (b.flooded > MONTH_SECONDS * .5) { if (b.growth > 0) log.push('The flood drowned a young sawah.'); b.growth = 0; continue; }
+      if (b.flooded > MONTH_SECONDS * .5) { if (b.growth > 0) log.push(['log.drowned']); b.growth = 0; continue; }
       if (frac >= .5) b.growth++;
       b.dryNote = frac < .5;
       if (b.growth >= 3 && this.people > 0) {
@@ -876,7 +876,7 @@ export class World {
       this.rice += grown;
       this.harvested += grown;
       if (this.afterEvent) this.harvestAfter += grown;
-      log.push(`The sawah gave ${grown} rice.`);
+      log.push(['log.sawah', { n: grown }]);
     }
     // food from the sea
     let food = 0, market = 0;
@@ -885,31 +885,31 @@ export class World {
       if (b.type === 'bakau') food += CATALOG.bakau.food;
       if (b.type === 'dermaga' && this.boatFloats(b)) food += CATALOG.dermaga.food;
       if (CATALOG[b.type].market) {
-        if (this.level.trucks && b.delivered === false) { /* the truck stayed in the queue */ } else if (!b.allTicks || b.openTicks / b.allTicks >= .5) market += CATALOG[b.type].market; else log.push('Water cut the road. The pasar got no rice.');
+        if (this.level.trucks && b.delivered === false) { /* the truck stayed in the queue */ } else if (!b.allTicks || b.openTicks / b.allTicks >= .5) market += CATALOG[b.type].market; else log.push(['log.roadCut']);
         b.openTicks = 0; b.allTicks = 0;
       }
     }
-    if (market) { this.rice += market; log.push(`The pasar brought ${market} rice.`); }
-    if (food) { this.rice += food; log.push(`The sea gave ${food} rice.`); }
+    if (market) { this.rice += market; log.push(['log.pasar', { n: market }]); }
+    if (food) { this.rice += food; log.push(['log.sea', { n: food }]); }
     // people eat
     const eat = Math.ceil(this.people / 4);
     if (eat > this.rice) {
       const short = eat - this.rice, gone = Math.min(this.people, short * 4);
       this.people -= gone; this.leftHungry += gone; this.rice = 0;
-      if (gone) log.push(`There was not enough rice. ${gone} people left.`);
+      if (gone) log.push(['log.hungryLeft', { n: gone }]);
       this.fx.push({ kind: 'hungry' });
     } else this.rice -= eat;
     const storeCap = this.store();
-    if (this.rice > storeCap) { log.push(`The store was full. ${this.rice - storeCap} rice was lost.`); this.rice = storeCap; }
+    if (this.rice > storeCap) { log.push(['log.storeLost', { n: this.rice - storeCap }]); this.rice = storeCap; }
     // homes fill if rice remains
     const cap = this.capacity();
-    if (this.people > cap) { const out = this.people - cap; this.people = cap; log.push(`${out} people had no dry home. They left.`); }
+    if (this.people > cap) { const out = this.people - cap; this.people = cap; log.push(['log.dryLeft', { n: out }]); }
     // people come only if the store holds rice for them for 2 months
     if (this.people < cap) {
       const canFeed = Math.floor(this.rice / 2) * 4, add = Math.max(0, Math.min(cap - this.people, canFeed - this.people));
       this.people += add;
-      if (add) log.push(`${add} people came to live here.`);
-      else if (cap > this.people) log.push('Empty homes wait for more rice.');
+      if (add) log.push(['log.came', { n: add }]);
+      else if (cap > this.people) log.push(['log.waiting']);
     }
     this.assignResidents();
     this.peakPeople = Math.max(this.peakPeople, this.people);
@@ -919,7 +919,7 @@ export class World {
     this.dirtyAll = true;
     this.checkGoal();
     this.fx.push({ kind: 'monthEnd', log: log.slice() });
-    if (!log.length) log.push('Nothing changed this month.');
+    if (!log.length) log.push(['log.nothing']);
   }
   boatFloats(b) {
     for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {

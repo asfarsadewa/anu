@@ -7,6 +7,7 @@ import { cardArt } from './gfx/buildings.js';
 import { iconURL, bindIcons, drawWordmark } from './ui/icons.js';
 import { drawMap } from './ui/map.js';
 import * as A from './audio.js';
+import { t, getLang, setLang, initialLang, subtitle } from './i18n.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('c'), scene = new Scene(canvas);
@@ -15,6 +16,18 @@ const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } cat
 
 const G = { screen: 'title', world: null, level: null, sel: null, speed: 1, placed: [], fcWorker: null, fcStamp: 0, fcOn: false, drag: null, seenBarks: new Set(), dissolveTo: 1, ended: false };
 window.__game = G; G.scene = scene; G.audio = A;
+
+// One plot's copy, in the current language
+const lc = (L, field) => t(`levels.${L.id}.${field}`);
+const weatherName = W => t('weather.' + (W.id || W));
+const cardDesc = type => t('cards.' + type);
+// Static text in the page carries its key in a data attribute
+function applyCopy() {
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+  document.querySelectorAll('[data-t-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.tAria)));
+  document.querySelectorAll('[data-t-alt]').forEach(el => { el.alt = t(el.dataset.tAlt); });
+  document.querySelectorAll('#lang button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === getLang()));
+}
 
 const TITLE_LEVEL = {
   id: 'title', N: 5, biome: 'basin', style: 'joglo', urban: true, roads: true, seed: 3, title: 'Anu', map: ['22222', '22222', '22211', '22111', '21111'],
@@ -33,7 +46,7 @@ function showTitle() {
   const w = new World(TITLE_LEVEL);
   w.weather = WEATHER.cerah;
   G.world = w;
-  scene.setInsets(180, 90);
+  scene.setInsets(180, 150);
   scene.setWorld(w);
   scene.dissolve = 1; G.dissolveTo = 1;
   drawWordmark($('wordmark'), scaleForWordmark());
@@ -68,11 +81,11 @@ function showMap() {
   list.innerHTML = '';
   let open = true;
   LEVELS.forEach((L, k) => {
-    if (k === 0 || L.part !== LEVELS[k - 1].part) { const h = document.createElement('li'); h.className = 'part'; h.textContent = L.part === 2 ? 'Part 2: Traffic' : 'Part 1: Town'; list.append(h); }
+    if (k === 0 || L.part !== LEVELS[k - 1].part) { const h = document.createElement('li'); h.className = 'part'; h.textContent = t(L.part === 2 ? 'ui.part2' : 'ui.part1'); list.append(h); }
     const stars = prog[L.id] || 0, li = document.createElement('li'), b = document.createElement('button');
     b.type = 'button'; b.disabled = !open;
-    const cont = save && save.id === L.id ? 'Saved game. ' : '';
-    b.innerHTML = `<span class="n">${k + 1}</span><span class="t">${L.title}</span><span class="p">${cont}${L.place}. ${L.N} x ${L.N} tiles.</span><span class="s" aria-label="${stars} stars">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`;
+    const cont = save && save.id === L.id ? t('ui.saved') : '';
+    b.innerHTML = `<span class="n">${k + 1}</span><span class="t">${L.title}</span><span class="p">${cont}${t('ui.plotLine', { place: lc(L, 'place'), n: L.N })}</span><span class="s" aria-label="${t('ui.aStars', { n: stars })}">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`;
     b.addEventListener('click', () => { A.sfx('ui_tap'); $('map').hidden = true; introLevel(L); });
     b.addEventListener('pointerenter', () => drawMap($('map-c'), LEVELS, prog, k));
     li.append(b); list.append(li);
@@ -93,12 +106,12 @@ sheet.addEventListener('cancel', e => e.preventDefault());
 
 function goalHtml(L, w) {
   const met = p => (w && w.done && w.done.won && w.pledgeMet(p) ? ' met' : '');
-  return `<ul><li><b>${L.goalText}</b></li>${(L.pledges || []).map(p => `<li class="star${met(p)}">${p.text}</li>`).join('')}</ul>`;
+  return `<ul><li><b>${lc(L, 'goal')}</b></li>${(L.pledges || []).map(p => `<li class="star${met(p)}">${t('pledge.' + p.kind, p)}</li>`).join('')}</ul>`;
 }
 function introLevel(L) {
   const save = store.get(SAVE), resume = save && save.id === L.id;
-  openSheet(`<h2>${L.title}</h2><p class="place">${L.place}. ${L.months} months.</p><p>${L.brief}</p>${goalHtml(L)}
-    <div class="row">${resume ? '<button id="restart" type="button">Start again</button><button id="go" class="primary" type="button">Continue</button>' : '<button id="back" type="button">Map</button><button id="go" class="primary" type="button">Start</button>'}</div>`, s => {
+  openSheet(`<h2>${L.title}</h2><p class="place">${t('ui.introLine', { place: lc(L, 'place'), months: L.months })}</p><p>${lc(L, 'brief')}</p>${goalHtml(L)}
+    <div class="row">${resume ? `<button id="restart" type="button">${t('ui.startAgain')}</button><button id="go" class="primary" type="button">${t('ui.continue')}</button>` : `<button id="back" type="button">${t('ui.map')}</button><button id="go" class="primary" type="button">${t('ui.begin')}</button>`}</div>`, s => {
     s.querySelector('#go').addEventListener('click', () => { A.sfx('ui_tap'); closeSheet(); startLevel(L, resume ? save : null); });
     const r = s.querySelector('#restart'); if (r) r.addEventListener('click', () => { A.sfx('ui_tap'); store.del(SAVE); closeSheet(); startLevel(L); });
     const b = s.querySelector('#back'); if (b) b.addEventListener('click', () => { A.sfx('ui_tap'); closeSheet(); showMap(); });
@@ -125,12 +138,12 @@ function buildMonths() {
   for (let m = 0; m < L.months; m++) {
     const d = document.createElement('div'), ev = (L.events || []).filter(e => e.month === m && e.kind !== 'warning');
     d.className = 'm' + (ev.length ? ' event' : ''); d.dataset.m = m; d.setAttribute('role', 'listitem');
-    d.innerHTML = `<i>${m + 1}</i><img alt="${WEATHER[L.weather[m]].name}" src="${iconURL(L.weather[m])}">`;
-    d.addEventListener('click', () => { const w = WEATHER[L.weather[m]], t = ev.map(eventText).join(' '); toast(`Month ${m + 1}: ${w.name}. ${t}`, ev.length ? 'warn' : ''); });
+    d.innerHTML = `<i>${m + 1}</i><img alt="${weatherName(L.weather[m])}" src="${iconURL(L.weather[m])}">`;
+    d.addEventListener('click', () => { const e = ev.map(eventText).join(' '), w = weatherName(L.weather[m]); toast(e ? t('ui.monthEvent', { m: m + 1, w, e }) : t('ui.monthLine', { m: m + 1, w }), ev.length ? 'warn' : ''); });
     host.append(d);
   }
 }
-const eventText = e => ({ quake: 'A quake comes.', flood: 'The river rises.', eruption: 'The volcano erupts.', wave: 'A wave comes.' }[e.kind] || '');
+const eventText = e => (['quake', 'flood', 'eruption', 'wave'].includes(e.kind) ? t('event.' + e.kind) : '');
 function buildCards() {
   const L = G.level, host = $('cards');
   host.innerHTML = '';
@@ -140,7 +153,7 @@ function buildCards() {
     const c = document.createElement('canvas');
     paintCard(c, type, L.style === 'mix' ? 'joglo' : L.style);
     btn.append(c);
-    btn.insertAdjacentHTML('beforeend', `<span class="cost" aria-label="Costs ${cat.cost} labour">${cat.cost}</span><span class="nm">${cat.name}</span>`);
+    btn.insertAdjacentHTML('beforeend', `<span class="cost" aria-label="${t('ui.aCost', { n: cat.cost })}">${cat.cost}</span><span class="nm">${cat.name}</span>`);
     btn.addEventListener('click', () => selectCard(type));
     host.append(btn);
   }
@@ -161,7 +174,7 @@ function selectCard(type) {
   const o = scene.overlay;
   o.showGrid = !!G.sel; o.tile = null; o.ghost = null;
   o.isValid = G.sel ? (x, y) => !G.world.canPlace(G.sel, x, y) : null;
-  if (G.sel) toast(CATALOG[G.sel].desc);
+  if (G.sel) toast(cardDesc(G.sel));
 }
 function refresh() {
   const w = G.world, L = G.level;
@@ -169,7 +182,7 @@ function refresh() {
   $('s-people').querySelector('b').textContent = w.people; $('s-people').querySelector('small').textContent = '/' + w.capacity();
   $('s-rice').querySelector('b').textContent = w.rice; $('s-rice').querySelector('small').textContent = '/' + w.store();
   $('s-labour').querySelector('b').textContent = w.labour;
-  $('goal-text').textContent = 'Goal: ' + L.goalText + progressText(w, L);
+  $('goal-text').textContent = t('ui.goal') + lc(L, 'goal') + progressText(w, L);
   document.querySelectorAll('.m').forEach(d => {
     const m = +d.dataset.m;
     d.classList.toggle('now', m === w.month); d.classList.toggle('past', m < w.month);
@@ -179,15 +192,15 @@ function refresh() {
   document.querySelectorAll('.card').forEach(c => c.classList.toggle('poor', CATALOG[c.dataset.type].cost > w.labour));
   $('undo').disabled = !G.placed.length;
   $('forecast').classList.toggle('on', G.fcOn);
-  $('next').textContent = `Next month (${w.month + 1}/${L.months})`;
+  $('next').textContent = t('ui.nextMonth', { m: w.month + 1, n: L.months });
 }
 function progressText(w, L) {
   const g = L.goal;
-  if (g.kind === 'flow') return w.month ? ` Last month: ${w.transit.tripsLast} trips, macet ${Math.round(w.transit.macetLast * 100)}%.` : '';
-  if (g.kind === 'freight') return ` Now ${w.transit.freight}/${g.n}.`;
-  if (g.kind === 'terraces') return ` Sawah on ${g.levels.length} terraces.`;
-  if (g.kind === 'harvest') return w.afterEvent ? ` Now ${w.harvestAfter}/${g.n}.` : '';
-  if (g.kind === 'kites') { const up = w.buildings.filter(b => b.type === 'lapangan' && b.kite >= g.height).length; return ` Now ${up}/${g.n}.`; }
+  if (g.kind === 'flow') return w.month ? t('ui.progressFlow', { t: w.transit.tripsLast, p: Math.round(w.transit.macetLast * 100) }) : '';
+  if (g.kind === 'freight') return t('ui.progressNow', { a: w.transit.freight, b: g.n });
+  if (g.kind === 'terraces') return t('ui.progressTerraces', { n: g.levels.length });
+  if (g.kind === 'harvest') return w.afterEvent ? t('ui.progressNow', { a: w.harvestAfter, b: g.n }) : '';
+  if (g.kind === 'kites') { const up = w.buildings.filter(b => b.type === 'lapangan' && b.kite >= g.height).length; return t('ui.progressNow', { a: up, b: g.n }); }
   return '';
 }
 function toast(text, kind = '') {
@@ -202,7 +215,7 @@ function bark(id) {
   if (G.seenBarks.has(id)) return;
   G.seenBarks.add(id);
   A.speak(id, line => {
-    $('say-text').textContent = line.en_text; $('say').hidden = false;
+    $('say-text').textContent = subtitle(line); $('say').style.top = $('hud').offsetHeight + 'px'; $('say').hidden = false;
     clearTimeout(sayTimer); sayTimer = setTimeout(() => { $('say').hidden = true; }, 4600);
   });
 }
@@ -264,7 +277,7 @@ function nextMonth() {
   G.placed = [];
   document.body.classList.add('running');
   $('tray').hidden = true; $('runbar').hidden = false;
-  $('run-label').textContent = `Month ${w.month + 1}: ${w.weather.name}.`;
+  $('run-label').textContent = t('ui.monthLine', { m: w.month + 1, w: weatherName(w.weather) });
   $('speed').setAttribute('aria-pressed', G.speed > 1);
   const danger = w.eventsNow().some(e => e.kind !== 'warning');
   if (!G.level.music) A.playMood(danger ? 'danger' : 'run');
@@ -278,7 +291,7 @@ function selectCardOff() {
 function monthEnded(log) {
   const w = G.world;
   document.body.classList.remove('running');
-  (log || []).forEach((line, k) => setTimeout(() => toast(line, /destroy|left|drown|lost|failed/.test(line) ? 'bad' : 'log'), k * 180));
+  (log || []).forEach(([key, params], k) => setTimeout(() => toast(t(key, params), /destroyed|Left|drowned|Lost|Failed/.test(key) ? 'bad' : 'log'), k * 180));
   $('runbar').hidden = true;
   if (!G.level.music) A.playMood('plan'); ambience();
   if (w.done) { endLevel(); return; }
@@ -286,7 +299,7 @@ function monthEnded(log) {
   store.set(SAVE, w.save());
   refresh();
   const nextEv = (G.level.events || []).find(e => e.month === w.month && e.kind !== 'warning');
-  if (nextEv) toast(`This month: ${eventText(nextEv)}`, 'warn');
+  if (nextEv) toast(t('ui.thisMonth', { e: eventText(nextEv) }), 'warn');
   if (w.harvested && !G.firstHarvest) { G.firstHarvest = true; bark('first_harvest'); }
 }
 function endLevel() {
@@ -307,11 +320,11 @@ function showResult(won) {
   const w = G.world, L = G.level, k = LEVELS.indexOf(L), next = LEVELS[k + 1];
   const s = won ? w.done.stars : 0;
   sheet.classList.toggle('low', won);
-  openSheet(`<h2>${won ? 'You met the goal.' : 'You did not meet the goal.'}</h2><p class="place">${L.title}. Month ${w.month} of ${L.months}.</p>
-    ${won ? `<p class="big" aria-label="${s} stars">${'★'.repeat(s)}${'☆'.repeat(3 - s)}</p>` : `<p>${failReason(w, L)}</p>`}
-    <div class="stats"><div><b>${w.people}</b>People</div><div><b>${w.rice}</b>Rice</div><div><b>${w.destroyed}</b>Lost</div></div>
+  openSheet(`<h2>${t(won ? 'ui.won' : 'ui.lost')}</h2><p class="place">${t('ui.resultLine', { title: L.title, m: w.month, n: L.months })}</p>
+    ${won ? `<p class="big" aria-label="${t('ui.aStars', { n: s })}">${'★'.repeat(s)}${'☆'.repeat(3 - s)}</p>` : `<p>${failReason(w, L)}</p>`}
+    <div class="stats"><div><b>${w.people}</b>${t('ui.statPeople')}</div><div><b>${w.rice}</b>${t('ui.statRice')}</div><div><b>${w.destroyed}</b>${t('ui.statLost')}</div></div>
     ${goalHtml(L, w)}
-    <div class="row"><button id="again" type="button">Play again</button>${won && next ? '<button id="next-l" class="primary" type="button">Next plot</button>' : '<button id="to-map" class="primary" type="button">Map</button>'}</div>`, sh => {
+    <div class="row"><button id="again" type="button">${t('ui.playAgain')}</button>${won && next ? `<button id="next-l" class="primary" type="button">${t('ui.nextPlot')}</button>` : `<button id="to-map" class="primary" type="button">${t('ui.map')}</button>`}</div>`, sh => {
     sh.querySelector('#again').addEventListener('click', () => { A.sfx('ui_tap'); closeSheet(); startLevel(L); });
     const n = sh.querySelector('#next-l'); if (n) n.addEventListener('click', () => { A.sfx('ui_tap'); closeSheet(); introLevel(next); });
     const m = sh.querySelector('#to-map'); if (m) m.addEventListener('click', () => { A.sfx('ui_tap'); closeSheet(); showMap(); });
@@ -319,11 +332,11 @@ function showResult(won) {
 }
 function failReason(w, L) {
   const g = L.goal;
-  if (g.kind === 'evac') return `${w.evacSafe || 0} of ${w.evacTotal || 0} people reached high ground. The goal needs all of them and at least ${g.min}.`;
-  if (g.kind === 'hall' && !w.buildings.some(b => b.type === 'balai' && b.done && !b.ruin)) return 'No balai stands.';
-  if (g.kind === 'salatiga') return w.buildings.some(b => b.type === 'prasasti' && !b.ruin) ? `You have ${w.people} people. The goal needs ${g.n}, and all three houses of faith.` : 'The Plumpungan stone fell.';
-  if (g.kind === 'people' || g.kind === 'hall' || g.kind === 'noSlide' || g.kind === 'holdAfter') return `You have ${w.people} people. The goal needs ${g.n}.`;
-  return 'You ran out of months.';
+  if (g.kind === 'evac') return t('fail.evac', { a: w.evacSafe || 0, b: w.evacTotal || 0, min: g.min });
+  if (g.kind === 'hall' && !w.buildings.some(b => b.type === 'balai' && b.done && !b.ruin)) return t('fail.noHall');
+  if (g.kind === 'salatiga') return w.buildings.some(b => b.type === 'prasasti' && !b.ruin) ? t('fail.faiths', { n: w.people, g: g.n }) : t('fail.stone');
+  if (g.kind === 'people' || g.kind === 'hall' || g.kind === 'noSlide' || g.kind === 'holdAfter') return t('fail.people', { n: w.people, g: g.n });
+  return t('fail.time');
 }
 
 /* ---------- input ---------- */
@@ -366,8 +379,8 @@ function showGhost(cx, cy, lift) {
 }
 function tryPlace(type, x, y) {
   const w = G.world, cat = CATALOG[type], err = w.canPlace(type, x, y);
-  if (err) { toast(err, 'bad'); A.sfx('ui_bad'); return; }
-  if (cat.cost > w.labour) { toast(`This needs ${cat.cost} labour. You have ${w.labour}.`, 'bad'); A.sfx('ui_bad'); return; }
+  if (err) { toast(t(err), 'bad'); A.sfx('ui_bad'); return; }
+  if (cat.cost > w.labour) { toast(t('ui.needLabour', { c: cat.cost, l: w.labour }), 'bad'); A.sfx('ui_bad'); return; }
   const b = w.place(type, x, y);
   if (!b) return;
   G.placed.push(b);
@@ -388,41 +401,41 @@ function undo() {
 }
 function showInfo(b) {
   const w = G.world, cat = CATALOG[b.type];
-  const lines = [cat.desc];
-  if (b.ruin) lines.unshift('This is rubble. It blocks the tile.');
-  else if (!b.done) lines.push(`The crew finishes this in ${b.monthsLeft} month${b.monthsLeft > 1 ? 's' : ''}.`);
+  const lines = [cardDesc(b.type)];
+  if (b.ruin) lines.unshift(t('info.rubble'));
+  else if (!b.done) lines.push(t('info.crew', { n: b.monthsLeft }));
   else if (cat.crop) {
     const d = w.avgDepth(b.x, b.y);
-    lines.push(`Growth: ${b.growth} of 3 months.`, d < .01 ? 'The water is too low.' : d > .24 ? 'The water is too high.' : 'The water depth is good.');
-    if (b.fertile) lines.push('Ash made this soil rich. The next harvest gives 4 more rice.');
+    lines.push(t('info.growth', { n: b.growth }), t(d < .01 ? 'info.waterLow' : d > .24 ? 'info.waterHigh' : 'info.waterGood'));
+    if (b.fertile) lines.push(t('info.fertile'));
   } else if (w.level.roads && cat.road && !w.linked(b, w.computeRoads())) {
-    lines.push('No road reaches this building. It does not work.');
+    lines.push(t('info.noRoad'));
   } else if (b.type === 'stasiun') {
-    lines.push('Trains stop here. People within 3 tiles ride.');
+    lines.push(t('info.station'));
   } else if (cat.market) {
-    lines.push('Rice each month: 4. Water on the road stops the trucks.');
+    lines.push(t('info.market'));
   } else if (cat.home) {
-    lines.push(`People: ${b.residents}.`);
-    if (b.soaked) lines.push('Water soaked this home. It holds no people this month.');
-  } else if (b.type === 'lapangan') lines.push(`Kite height: ${b.kite.toFixed(1)}. Wind here: ${(w.tileWind(b.x, b.y) * 100 | 0)}%.`);
-  else if (b.type === 'kincir') lines.push(b.lift ? 'The wheel lifts water to the higher tile.' : 'No higher tile is next to the wheel.');
-  const label = b.ruin ? 'Clear rubble (1 labour)' : G.placed.includes(b) ? 'Undo' : 'Remove';
+    lines.push(t('info.residents', { n: b.residents }));
+    if (b.soaked) lines.push(t('info.soaked'));
+  } else if (b.type === 'lapangan') lines.push(t('info.kite', { h: b.kite.toFixed(1), w: w.tileWind(b.x, b.y) * 100 | 0 }));
+  else if (b.type === 'kincir') lines.push(t(b.lift ? 'info.wheelLifts' : 'info.wheelIdle'));
+  const label = t(b.ruin ? 'info.clearRubble' : G.placed.includes(b) ? 'ui.undo' : 'info.remove');
   const canAct = !w.running;
-  openSheet(`<h2>${cat.name}</h2><p class="place">Tile ${b.x + 1}, ${b.y + 1}. Height ${w.tileHeight(b.x, b.y)}.</p>${lines.map(l => `<p>${l}</p>`).join('')}
-    <div class="row"><button id="close" type="button">Close</button>${canAct ? `<button id="act" type="button">${label}</button>` : ''}</div>`, s => {
+  openSheet(`<h2>${cat.name}</h2><p class="place">${t('info.tileLine', { x: b.x + 1, y: b.y + 1, h: w.tileHeight(b.x, b.y) })}</p>${lines.map(l => `<p>${l}</p>`).join('')}
+    <div class="row"><button id="close" type="button">${t('ui.close')}</button>${canAct ? `<button id="act" type="button">${label}</button>` : ''}</div>`, s => {
     s.querySelector('#close').addEventListener('click', () => { A.sfx('ui_tap'); closeSheet(); });
     const act = s.querySelector('#act');
     if (act) act.addEventListener('click', () => {
       closeSheet();
-      if (b.ruin) { if (!w.clearRubble(b)) toast('This needs 1 labour.', 'bad'); } else if (G.placed.includes(b)) { G.placed = G.placed.filter(o => o !== b); w.remove(b, true); } else w.remove(b);
+      if (b.ruin) { if (!w.clearRubble(b)) toast(t('ui.needOneLabour'), 'bad'); } else if (G.placed.includes(b)) { G.placed = G.placed.filter(o => o !== b); w.remove(b, true); } else w.remove(b);
       A.sfx('dig'); refresh();
     });
   });
 }
 function tileInfo(x, y) {
-  const w = G.world, soil = [, 'Soil', 'Sand', 'Rock', 'Rich soil'][w.soil[y * w.N + x]] || 'Soil', wet = w.avgDepth(x, y);
+  const w = G.world, soil = t('soil.' + ([, 'soil', 'sand', 'rock', 'rich'][w.soil[y * w.N + x]] || 'soil')), wet = w.avgDepth(x, y);
   const moist = w.moist[y * w.N + x];
-  toast(`This tile is ${soil.toLowerCase()}. Its height is ${w.tileHeight(x, y)}.${wet > .02 ? ' Water is on this tile.' : ''}${w.level.slides && moist > .7 ? ' The soil is nearly full of water.' : ''}`);
+  toast(t('info.tile', { soil, h: w.tileHeight(x, y) }) + (wet > .02 ? t('info.tileWet') : '') + (w.level.slides && moist > .7 ? t('info.tileSoaked') : ''));
 }
 function runForecast() {
   const w = G.world;
@@ -435,17 +448,17 @@ function runForecast() {
       if (e.data.stamp !== G.fcStamp || !G.fcOn) return;
       scene.overlay.forecast = e.data;
       const a = e.data.alerts, lost = a.filter(x => x.kind === 'lost').length, dry = a.filter(x => x.kind === 'dry').length;
-      toast(lost ? `${lost} building${lost > 1 ? 's' : ''} may fall this month.` : dry ? `${dry} sawah may dry out this month.` : 'The blue tiles show where water goes this month.', lost ? 'bad' : '');
-      $('forecast').textContent = 'Forecast';
+      toast(lost ? t('forecast.lost', { n: lost }) : dry ? t('forecast.dry', { n: dry }) : t('forecast.clear'), lost ? 'bad' : '');
+      $('forecast').textContent = t('ui.forecast');
     };
   }
   G.fcOn = true; G.fcStamp++;
-  $('forecast').textContent = 'Wait';
+  $('forecast').textContent = t('ui.wait');
   const snap = w.snapshot(); snap.stamp = G.fcStamp;
   G.fcWorker.postMessage(snap);
   refresh();
 }
-function closeForecast() { G.fcOn = false; scene.overlay.forecast = null; G.fcStamp++; $('forecast').textContent = 'Forecast'; }
+function closeForecast() { G.fcOn = false; scene.overlay.forecast = null; G.fcStamp++; $('forecast').textContent = t('ui.forecast'); }
 
 // The Start button runs one Turnstile check. The dev server has no /api, so the game starts at once there
 let tsWidget = null;
@@ -461,7 +474,7 @@ async function gate() {
   });
   const token = await new Promise((res, rej) => {
     const fail = () => { rej(new Error('turnstile')); return true; };
-    tsWidget = window.turnstile.render('#ts', { sitekey: cfg.siteKey, action: cfg.action, appearance: 'interaction-only', callback: res, 'error-callback': fail, 'expired-callback': fail, 'timeout-callback': fail, 'unsupported-callback': fail, 'before-interactive-callback': () => { $('title-sub').textContent = 'Complete the security check to start.'; } });
+    tsWidget = window.turnstile.render('#ts', { sitekey: cfg.siteKey, action: cfg.action, language: getLang(), appearance: 'interaction-only', callback: res, 'error-callback': fail, 'expired-callback': fail, 'timeout-callback': fail, 'unsupported-callback': fail, 'before-interactive-callback': () => { $('title-sub').textContent = t('ui.securityAsk'); } });
   });
   const r = await fetch('/api/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token }) });
   return r.ok;
@@ -471,27 +484,27 @@ $('start').addEventListener('click', async () => {
   if (starting) return;
   starting = true;
   A.unlockAudio(); A.sfx('ui_tap');
-  const btn = $('start'), label = btn.textContent;
-  btn.textContent = 'Wait'; btn.disabled = true;
+  const btn = $('start');
+  btn.textContent = t('ui.wait'); btn.disabled = true;
   let ok = false;
   try { ok = await gate(); } catch { ok = false; }
-  starting = false; btn.disabled = false; btn.textContent = label;
+  starting = false; btn.disabled = false; btn.textContent = t('ui.start');
   clearWidget();
-  if (!ok) { $('title-sub').textContent = 'The security check failed. Tap to try again.'; return; }
+  if (!ok) { $('title-sub').textContent = t('ui.securityFailed'); return; }
   A.refreshAudio(); A.playTheme(); showMap();
 });
 $('next').addEventListener('click', nextMonth);
 $('undo').addEventListener('click', undo);
 $('forecast').addEventListener('click', runForecast);
-$('speed').addEventListener('click', () => { G.speed = G.speed > 1 ? 1 : 3; $('speed').setAttribute('aria-pressed', G.speed > 1); $('speed').textContent = G.speed > 1 ? 'Fast x3' : 'Fast'; A.sfx('ui_tap'); });
+$('speed').addEventListener('click', () => { G.speed = G.speed > 1 ? 1 : 3; $('speed').setAttribute('aria-pressed', G.speed > 1); $('speed').textContent = t(G.speed > 1 ? 'ui.fast3' : 'ui.fast'); A.sfx('ui_tap'); });
 $('goal').addEventListener('click', () => {
   A.sfx('ui_tap');
-  openSheet(`<h2>${G.level.title}</h2><p class="place">${G.level.place}</p><p>${G.level.brief}</p>${goalHtml(G.level)}<div class="row"><button id="close" class="primary" type="button">Close</button></div>`, s => s.querySelector('#close').addEventListener('click', closeSheet));
+  openSheet(`<h2>${G.level.title}</h2><p class="place">${lc(G.level, 'place')}</p><p>${lc(G.level, 'brief')}</p>${goalHtml(G.level)}<div class="row"><button id="close" class="primary" type="button">${t('ui.close')}</button></div>`, s => s.querySelector('#close').addEventListener('click', closeSheet));
 });
 $('menu').addEventListener('click', () => {
   A.sfx('ui_tap');
-  openSheet(`<h2>Menu</h2><p class="place">${G.level ? G.level.title : ''}</p>
-    <div class="row"><button id="close" type="button">Close</button></div><div class="row"><button id="restart" type="button">Start this plot again</button></div><div class="row"><button id="to-map" type="button">Map</button></div>`, s => {
+  openSheet(`<h2>${t('ui.menu')}</h2><p class="place">${G.level ? G.level.title : ''}</p>
+    <div class="row"><button id="close" type="button">${t('ui.close')}</button></div><div class="row"><button id="restart" type="button">${t('ui.restartPlot')}</button></div><div class="row"><button id="to-map" type="button">${t('ui.map')}</button></div>`, s => {
     s.querySelector('#close').addEventListener('click', closeSheet);
     s.querySelector('#restart').addEventListener('click', () => { closeSheet(); store.del(SAVE); startLevel(G.level); });
     s.querySelector('#to-map').addEventListener('click', () => { closeSheet(); A.stopMood(); showMap(); });
@@ -500,23 +513,24 @@ $('menu').addEventListener('click', () => {
 const muteBtn = $('mute');
 function applyMute(v) { A.setMuted(v); store.set(MUTE, v); muteBtn.querySelector('img').src = iconURL(v ? 'soundoff' : 'sound'); muteBtn.setAttribute('aria-pressed', v); }
 muteBtn.addEventListener('click', () => applyMute(!A.isMuted()));
-const explain = (id, text) => $(id).addEventListener('click', () => toast(text));
-explain('s-people', 'Homes hold people. People give labour.');
-explain('s-rice', 'Every 4 people eat 1 rice each month. People come only if the store holds rice for 2 months.');
-explain('s-labour', 'Labour pays for cards. It refills each month. It does not carry over.');
+const explain = (id, key) => $(id).addEventListener('click', () => toast(t(key)));
+explain('s-people', 'ui.explainPeople');
+explain('s-rice', 'ui.explainRice');
+explain('s-labour', 'ui.explainLabour');
+document.querySelectorAll('#lang button').forEach(b => b.addEventListener('click', () => { A.sfx('ui_tap'); setLang(b.dataset.lang, true); applyCopy(); }));
 for (const kind of ['pointerdown', 'keydown']) addEventListener(kind, () => A.unlockAudio(), { capture: true, passive: true });
 
 scene.sfx = id => A.sfx(id, { gain: /hammer|saw|lash|brick|tile|dig|thud/.test(id) ? .32 : .6, gap: /hammer|saw|lash|brick|tile|dig|thud/.test(id) ? .16 : .3 });
 scene.cue = (kind, data) => {
   if (kind === 'monthEnd') { monthEnded(data); return; }
-  const say = { quake: 'The ground shakes.', eruption: 'The volcano erupts.', flood: 'The river rises.', wave: 'The wave is coming.', hungry: 'The town is hungry.' }[kind];
+  const say = ['quake', 'eruption', 'flood', 'wave', 'hungry'].includes(kind) ? t('cue.' + kind) : '';
   if (say) { toast(say, 'warn'); $('run-label').textContent = say; }
   if (kind === 'warning:quake') bark('quake_warning');
   if (kind === 'warning:ash') bark('ash_warning');
   if (kind === 'warning:wave') bark('wave_warning');
   if (kind === 'flood') bark('flood_warning');
   if (kind === 'hungry') bark('hungry');
-  if (kind === 'stall') toast('The train cannot climb this tile.', 'warn');
+  if (kind === 'stall') toast(t('ui.stall'), 'warn');
 };
 
 /* ---------- the loop ---------- */
@@ -548,7 +562,7 @@ function tick(dt) {
     scene.dissolve = G.dissolveTo > scene.dissolve ? Math.min(G.dissolveTo, scene.dissolve + d) : Math.max(G.dissolveTo, scene.dissolve - d);
   }
   scene.render(dt);
-  if (w.transit && w.running && G.level.goal.kind === 'flow' && !G.alertLabel) $('run-label').textContent = `Month ${w.month + 1}. Trips ${w.transit.trips}. Macet ${Math.round((w.transit.macetNow || 0) * 100)}%.`;
+  if (w.transit && w.running && G.level.goal.kind === 'flow' && !G.alertLabel) $('run-label').textContent = t('ui.trafficLine', { m: w.month + 1, t: w.transit.trips, p: Math.round((w.transit.macetNow || 0) * 100) });
   if (w.transit && w.running && (w.transit.macetNow || 0) > .6 && w.transit.vehicles.length > 8) bark('train_late');
   soundClock += dt;
   if (soundClock > .7) { soundClock = 0; if (G.screen === 'play') { ambience(); townSounds(); } }
@@ -569,6 +583,9 @@ bindIcons();
 $('say-face').src = iconURL('face');
 applyMute(!!store.get(MUTE));
 const params = new URLSearchParams(location.search);
+// ?still always renders in English, so the share card does not follow the machine's language
+setLang(params.has('still') ? 'en' : params.get('lang') || initialLang());
+applyCopy();
 if (params.has('level')) { showTitle(); G.startLevel(params.get('level')); } else showTitle();
 // ?still shows the picture alone, for the share card and the icons
 if (params.get('still') === 'icon') { $('title').hidden = true; }

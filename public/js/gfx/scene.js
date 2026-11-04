@@ -876,7 +876,7 @@ export class Scene {
     } else if (W.rain > 0) { gain = [.98, .99, 1.01]; }
     this.ashDim += ((w.plume ? Math.min(1, w.plume.rate / .03) : 0) - this.ashDim) * .015;
     if (this.ashDim > .005) { const k = this.ashDim; gain = [gain[0] * (1 - .17 * k), gain[1] * (1 - .2 * k), gain[2] * (1 - .22 * k)]; sat *= 1 - .22 * k; }
-    if (W.name === 'Cloudy') { gain = [gain[0] * .94, gain[1] * .95, gain[2] * .98]; sat = .92; }
+    if (W.id === 'berawan') { gain = [gain[0] * .94, gain[1] * .95, gain[2] * .98]; sat = .92; }
     if (this.lightning > 0) { const f = this.lightning * 70; lift = [lift[0] + f, lift[1] + f, lift[2] + f * 1.1]; }
     if (this.dissolve > 0) { const k = this.dissolve; gain = [lerp(gain[0], 1, k), lerp(gain[1], 1, k), lerp(gain[2], 1, k)]; lift = [lift[0] * (1 - k), lift[1] * (1 - k), lift[2] * (1 - k)]; sat = lerp(sat, 1, k); night *= 1 - k; }
     this.frame.setGrade(gain, lift, sat);

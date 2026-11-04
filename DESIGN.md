@@ -134,3 +134,5 @@ Changed for a town builder:
 ## Copy
 
 All UI text and engine result lines follow the ASD-STE100 register. Bu Lurah's lines are in-fiction voice and are exempt.
+
+The game has two languages: English and Bahasa Indonesia. Neither is a translation of the other. The Indonesian follows the same register and uses `kamu`. Building and plot names are the same in both. The voice of Bu Lurah is Indonesian in both. Only her subtitle changes.

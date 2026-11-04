@@ -34,6 +34,8 @@ A mobile-first Indonesian town builder. Physics runs between monthly turns. DESI
 
 ## Copy
 - All UI text, goals, card text, result lines and the README follow the ASD-STE100 register in the user's global instructions. A sentence must be a full sentence. Scan before a commit.
+- The game ships in English and Bahasa Indonesia. All player copy lives in `public/js/copy/en.js` and `public/js/copy/id.js`. Both are first class. Write the Indonesian as native copy, not as a literal translation. Terms: people = warga, labour = tenaga, rice = beras, tile = petak, plot = lahan, goal = target. Address the player as `kamu`.
+- `public/js/sim/` holds no copy. `canPlace` returns a key. `log` entries are `[key, params]`. `main.js` calls `t()`. `test/copy.test.mjs` checks that both files hold the same keys and placeholders.
 - Bu Lurah's lines are in-fiction voice and are exempt. Script and subtitles live in `public/audio/voice/lines.json`.
 - Place names and Indonesian building names are proper nouns.
 
