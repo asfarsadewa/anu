@@ -110,6 +110,7 @@ export const LEVELS = [
   },
   {
     id: 'merapi', title: 'Merapi', place: 'Magelang', N: 7, biome: 'volcano', style: 'joglo', urban: true, seed: 83, roads: true, cone: [-6, -6], coneH: 7, coneR: 14,
+    backdrop: [{ x: .5, w: .92, h: .72, tone: 0, name: 'Merapi', plume: 0 }],
     map: ['4443332', '4433322', '4333222', '3332221', '3322211', '3222111', '2221111'],
     springs: [{ x: 1.5, y: -.5, rate: .9 }],
     gate: { x: 6, y: 4, side: 'x' },
@@ -153,7 +154,7 @@ export const LEVELS = [
   },
   {
     id: 'salatiga', title: 'Salatiga', place: 'Central Java, under Merbabu', N: 8, biome: 'salatiga', style: 'kolonial', urban: true, seed: 750, roads: true, farLand: 102, slides: true, moist: .25, soak: .5, avenue: true, mist: true, music: 'salatiga',
-    backdrop: [{ x: .24, w: .34, h: .62, tone: 0, name: 'Telomoyo' }, { x: .62, w: .78, h: .9, tone: 1, name: 'Merbabu' }],
+    backdrop: [{ x: .24, w: .34, h: .62, tone: 0, name: 'Telomoyo' }, { x: .62, w: .78, h: .9, tone: 1, name: 'Merbabu', plume: .34 }],
     map: ['66665555', '66655555', '55555444', '55554444', '44444433', '44444333', '33333332', '33333222'],
     gate: { x: 0, y: 4, side: 'x' },
     springs: [{ x: -.5, y: 5.6, rate: 1.1 }],

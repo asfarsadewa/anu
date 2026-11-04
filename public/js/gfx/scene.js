@@ -81,11 +81,11 @@ export class Scene {
     this.staticDirty = true; this.terrainDirty = true; this.rainDrops = []; this.floats = []; this.flags = []; this.crew = new Map(); this.walkers = []; this.tufts = []; this.plants = []; this.ropes = new Map();
     this.overlay = { tile: null, ghost: null, valid: true, showGrid: false, forecast: null, chips: null };
     this.dissolve = 0; this.islandBake = null; this.shake = 0; this.insets = { top: 96, bottom: 160 };
-    this.lightning = 0; this.liveAll = false; this.grade = { night: 0 };
+    this.lightning = 0; this.ashDim = 0; this.liveAll = false; this.grade = { night: 0 };
   }
   setInsets(top, bottom) { this.insets = { top, bottom }; }
   setWorld(world) {
-    this.world = world; this.cars = []; this.lamps = []; this.vis.clear(); this.crew.clear(); this.ropes.clear(); this.floats = []; this.flags = [];
+    this.world = world; this.ashDim = 0; this.cars = []; this.lamps = []; this.vis.clear(); this.crew.clear(); this.ropes.clear(); this.floats = []; this.flags = [];
     this.fx.n = 0; this.sticks.list = []; this.debris.list = []; this.overlay.forecast = null; this.islandBake = null;
     this.layout(true);
     this.buildNature();
@@ -199,23 +199,30 @@ export class Scene {
   }
 
   // Far mountains painted behind the land: pale, cool and low in contrast. Merbabu and Telomoyo stand over Salatiga
+  backdropBox() {
+    const { frame, world } = this, top = this.insets.top * this.dpr / this.zoom + 10;
+    const base = frame.OY - world.heights[0] * STEP * ZS + 6;
+    return { base, tall: Math.max(30, base - top) };
+  }
+  ridgeAt(m, ix, base, tall) {
+    const hw = m.w * this.frame.W / 2 * 1.3, h = tall * m.h, u = (ix - m.x * this.frame.W) / hw, side = Math.pow(1 - Math.abs(u), m.tone ? .95 : 1.15), rough = (noise(ix * .06 + m.tone * 9, 3) - .5) * .16 + (noise(ix * .2, 7) - .5) * .03;
+    return base - h * clamp(side + rough * side * 2, 0, 1) - (m.tone ? Math.sin(u * 9) * .03 * h * side : 0);
+  }
   paintBackdrop(pix, zs) {
     const { frame, world } = this, bd = world.level.backdrop;
     if (!bd) return;
-    const { W, H, tKind } = frame, f = this.dpr / this.zoom, top = this.insets.top * f + 10, N = world.N;
-    const plotTop = frame.OY - world.heights[0] * STEP * ZS, base = plotTop + 6, tall = Math.max(30, base - top);
+    const { W, H, tKind } = frame, { base, tall } = this.backdropBox();
     const tones = [[[150, 170, 190], [176, 192, 206], [198, 210, 220]], [[126, 150, 176], [156, 176, 196], [190, 204, 216]]];
     for (const m of bd) {
       const cx = m.x * W, hw = m.w * W / 2 * 1.3, h = tall * m.h, t = tones[m.tone];
       for (let ix = Math.max(0, Math.floor(cx - hw)); ix < Math.min(W, cx + hw); ix++) {
-        const u = (ix - cx) / hw, side = Math.pow(1 - Math.abs(u), m.tone ? .95 : 1.15), rough = (noise(ix * .06 + m.tone * 9, 3) - .5) * .16 + (noise(ix * .2, 7) - .5) * .03;
-        const ridge = base - h * clamp(side + rough * side * 2, 0, 1) - (m.tone ? Math.sin(u * 9) * .03 * h * side : 0);
+        const u = (ix - cx) / hw, ridge = this.ridgeAt(m, ix, base, tall);
         for (let iy = Math.max(0, Math.floor(ridge)); iy < Math.min(H, base); iy++) {
           const i = iy * W + ix, k = tKind[i];
           if (k === 1 || k === 2) continue;
           const fade = 1 - smooth(base - tall * .55, base, iy), depth = (iy - ridge) / h;
           // gullies run down the slope and the upper left side catches the sun
-          const gully = noise(u * 16 + m.tone * 5, depth * 3), light = (u < 0 ? .62 : .32) + (gully - .5) * .55 + (hash(ix, iy) - .5) * .1 - depth * .1;
+          const gully = noise(u * 16 + m.tone * 5, depth * 3), light = (u + (noise(iy * .07, m.tone * 3 + 21) - .5) * .16 < 0 ? .62 : .32) + (gully - .5) * .55 + (hash(ix, iy) - .5) * .1 - depth * .1;
           const c = t[clamp(Math.floor(light * 3 + (bayerAt(ix, iy) - .5) * .5), 0, 2)];
           pix[i] = mixc(pix[i], rgb(c[0], c[1], c[2]), fade * (.42 + .22 * m.h));
         }
@@ -374,15 +381,28 @@ export class Scene {
       }
     }
   }
+  // The real cone stands behind the HUD on a phone, so the column rises from the painted peak. A backdrop entry with `plume` names it
+  plumeVent() {
+    const { frame, world } = this, m = (world.level.backdrop || []).find(b => b.plume != null);
+    if (!m) return null;
+    const { base, tall } = this.backdropBox(), hw = m.w * frame.W / 2 * 1.3, ix = Math.round(m.x * frame.W + m.plume * hw);
+    const s = -2, dx = (ix - frame.OX) / TW, z = (frame.OY + s * TH - this.ridgeAt(m, ix, base, tall)) / ZS;
+    return [(s + dx) / 2, (s - dx) / 2, z];
+  }
+  emitPlume(wind, puffs = Math.random() < .8 ? 1 : 0) {
+    const v = this.plumeVent(), p = this.world.plume;
+    if (!v || !p) return;
+    const k = Math.min(1, p.rate / .03);
+    for (let n = 0; n < puffs; n++) {
+      if (Math.random() > .35 + .65 * k) continue;
+      this.fx.add(P_SMOKE, v[0] + (Math.random() - .5) * .9, v[1] + (Math.random() - .5) * .9, v[2], wind[0] * .6 + (Math.random() - .5) * .7, wind[1] * .6 + (Math.random() - .5) * .7, 2.4 + Math.random() * 2, 4.5 + Math.random() * 2, 3 + k * 2 + Math.random() * 4, Math.random() < .3 ? rgb(52, 48, 52) : rgb(78, 72, 76));
+    }
+    if (Math.random() < .3 * k) this.fx.add(P_SPARK, v[0], v[1], v[2] + .1, (Math.random() - .5) * 2.4, (Math.random() - .5) * 2.4, 2.5 + Math.random() * 2.5, 1.1, 2);
+  }
   emitWorldFx(wind) {
     const w = this.world;
     if (w.plume) {
-      const p = w.plume;
-      for (let k = 0; k < 2; k++) {
-        const cone = w.level.cone || [p.x, p.y];
-        const fx = (cone[0] + (Math.random() - .5) * 1.2), fy = (cone[1] + (Math.random() - .5) * 1.2);
-        this.fx.add(P_SMOKE, fx, fy, (w.level.coneH || 5) * .9, wind[0] * .6 + (Math.random() - .5) * .4, wind[1] * .6 + (Math.random() - .5) * .4, 1.2 + Math.random() * .8, 4, 5 + Math.random() * 3, rgb(84, 78, 80));
-      }
+      this.emitPlume(wind);
       for (let k = 0; k < 3; k++) {
         const N = w.N, x = -3 + Math.random() * (N + 6), y = -3 + Math.random() * (N + 6);
         const i = w.idx(x, y); if (i < 0) continue;
@@ -556,7 +576,7 @@ export class Scene {
         case 'collapse': this.onCollapse(e.b); break;
         case 'harvest': this.onHarvest(e.b, e.y); break;
         case 'quake': this.liveAll = true; this.staticDirty = true; this.sfx('rumble'); this.cue('quake'); break;
-        case 'eruption': this.sfx('eruption'); this.shake = 1.5; this.cue('eruption'); break;
+        case 'eruption': this.sfx('eruption'); this.shake = 1.5; this.emitPlume([0, 0], 28); this.cue('eruption'); break;
         case 'crest': this.cue('flood'); break;
         case 'wave': this.cue('wave'); break;
         case 'warning': this.cue('warning:' + e.hazard); break;
@@ -854,6 +874,8 @@ export class Scene {
       gain = [gain[0] * k, gain[1] * (k + .02), gain[2] * (k + .07)]; sat = .94 - wet * .3;
       night = Math.max(night, wet * .35);
     } else if (W.rain > 0) { gain = [.98, .99, 1.01]; }
+    this.ashDim += ((w.plume ? Math.min(1, w.plume.rate / .03) : 0) - this.ashDim) * .015;
+    if (this.ashDim > .005) { const k = this.ashDim; gain = [gain[0] * (1 - .17 * k), gain[1] * (1 - .2 * k), gain[2] * (1 - .22 * k)]; sat *= 1 - .22 * k; }
     if (W.name === 'Cloudy') { gain = [gain[0] * .94, gain[1] * .95, gain[2] * .98]; sat = .92; }
     if (this.lightning > 0) { const f = this.lightning * 70; lift = [lift[0] + f, lift[1] + f, lift[2] + f * 1.1]; }
     if (this.dissolve > 0) { const k = this.dissolve; gain = [lerp(gain[0], 1, k), lerp(gain[1], 1, k), lerp(gain[2], 1, k)]; lift = [lift[0] * (1 - k), lift[1] * (1 - k), lift[2] * (1 - k)]; sat = lerp(sat, 1, k); night *= 1 - k; }
