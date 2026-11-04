@@ -1,5 +1,6 @@
 // The frame: colour and depth buffers, the baked layers, ramps, grading and depth stamps.
 import { clamp, lerp, TW, TH, ZS, depthOf } from '../core.js';
+import { Smoother } from './smooth.js';
 
 export const rgb = (r, g, b) => (255 << 24 | clamp(b | 0, 0, 255) << 16 | clamp(g | 0, 0, 255) << 8 | clamp(r | 0, 0, 255)) >>> 0;
 export const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map(v => (v + .5) / 16);
@@ -63,23 +64,36 @@ export class Frame {
     }
   }
   fitCanvas() {
-    const k = this.smooth ? 2 : 1;
+    const cpu = this.smooth && !this.gpu, k = cpu ? 2 : 1;
     this.canvas.width = this.W * k; this.canvas.height = this.H * k;
-    this.image2 = this.smooth ? this.ctx.createImageData(this.W * 2, this.H * 2) : null;
-    this.pix2 = this.smooth ? new Uint32Array(this.image2.data.buffer) : null;
+    this.image2 = cpu ? this.ctx.createImageData(this.W * 2, this.H * 2) : null;
+    this.pix2 = cpu ? new Uint32Array(this.image2.data.buffer) : null;
+    if (this.gpu && this.view) this.gpu.resize(this.W, this.H, this.view.zoom, this.view.w, this.view.h);
   }
   // The smooth display turns on here. The world stays the same, so nothing needs a new bake
   setSmooth(on) {
     if (this.smooth === on) return;
     this.smooth = on;
+    if (on && !this.triedGpu) {
+      this.triedGpu = true;
+      try { this.gpu = Smoother.make(this.canvas); } catch { this.gpu = null; }
+      if (this.gpu) this.gpu.onLost = () => { this.gpu.canvas.remove(); this.gpu = null; this.fitCanvas(); }; // a lost context falls back to Scale2x
+    }
+    if (this.gpu) this.gpu.canvas.style.display = on ? 'block' : 'none';
     if (this.W) this.fitCanvas();
   }
+  // The scene tells the frame how large the picture appears
+  setView(zoom, w, h) {
+    this.view = { zoom, w, h };
+    if (this.gpu) this.gpu.resize(this.W, this.H, zoom, w, h);
+  }
   present() {
+    if (this.smooth && this.gpu) { this.gpu.draw(this.pix); return; }
     if (!this.smooth) { this.ctx.putImageData(this.image, 0, 0); return; }
     this.scale2x();
     this.ctx.putImageData(this.image2, 0, 0);
   }
-  // Scale2x: a pixel on a stair-step edge fills its corner from its neighbours. Edges round off and flat colour stays sharp
+  // Scale2x, for a device with no WebGL: a pixel on a stair-step edge fills its corner from its neighbours
   scale2x() {
     const { W, H, pix, pix2 } = this, W2 = W * 2;
     for (let y = 0, i = 0, o = 0; y < H; y++, o += W2) {

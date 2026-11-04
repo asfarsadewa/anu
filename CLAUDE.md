@@ -41,6 +41,9 @@ A mobile-first Indonesian town builder. Physics runs between monthly turns. DESI
 ## The people
 - `gfx/toons.js` draws and moves the people. It is presentation only. The sim owns only the evacuation walkers' positions. Feet plant on the ground and swing to the next spot. A spring carries the hips. The spine leans with acceleration, wind and `world.groundAccel`. Keep their proportions chunky, so they read at phone zoom.
 
+## The smooth display
+- `gfx/smooth.js` is an optional WebGL display: one pass melts dither, and one redraws edges in the xBR manner. It is all code and adds no assets. `pickScale` holds its fill budget. Scale2x in `gfx/frame.js` is the path for a device with no WebGL. Pixels stays the default.
+
 ## Copy
 - All UI text, goals, card text, result lines and the README follow the ASD-STE100 register in the user's global instructions. A sentence must be a full sentence. Scan before a commit.
 - The game ships in English, Bahasa Indonesia and Simplified Chinese. All player copy lives in `public/js/copy/`: `en.js`, `id.js` and `zh.js`. All are first class. Write each as native copy, not as a literal translation. Indonesian terms: people = warga, labour = tenaga, rice = beras, tile = petak, plot = lahan, goal = target. Address the player as `kamu`. Chinese terms: people = 居民, labour = 人力 (点), rice = 大米 (袋), tile = 格, plot = 地块, goal = 目标, macet = 拥堵. Address the player as `你`. The Chinese localises building and plot names. Only the name Anu stays in Latin script.

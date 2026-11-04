@@ -104,6 +104,7 @@ export class Scene {
     this.zoom = zoom; this.dpr = dpr;
     this.frame.resize(W, H);
     this.frame.canvas.style.width = W * zoom / dpr + 'px'; this.frame.canvas.style.height = H * zoom / dpr + 'px';
+    this.frame.setView(zoom, W * zoom / dpr, H * zoom / dpr);
     let avg = 0; for (let i = 0; i < N * N; i++) avg += this.world.heights[i];
     avg = avg / (N * N) * STEP;
     const centerY = (ins.top + (innerHeight - ins.bottom)) / 2 * dpr / zoom;
