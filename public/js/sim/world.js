@@ -829,7 +829,7 @@ export class World {
       b.residents = 0;
     }
     if (cat.home && (why === 'landslide' || why === 'mud')) this.slideHits = (this.slideHits || 0) + 1;
-    this.log.push(['log.destroyed.' + why, { name: cat.name.toLowerCase() }]);
+    this.log.push(['log.destroyed.' + why, { type: b.type }]);
     this.touch(b.x, b.y, cat.foot || 1);
     this.fx.push({ kind: 'collapse', b, why });
   }

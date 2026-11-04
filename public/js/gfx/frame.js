@@ -29,8 +29,8 @@ export class Frame {
   resize(W, H) {
     if (W === this.W && H === this.H) return;
     this.W = W; this.H = H;
-    this.canvas.width = W; this.canvas.height = H;
     this.image = this.ctx.createImageData(W, H);
+    this.fitCanvas();
     const n = W * H;
     this.pix = new Uint32Array(this.image.data.buffer);
     this.zb = new Float32Array(n);
@@ -62,7 +62,37 @@ export class Frame {
       }
     }
   }
-  present() { this.ctx.putImageData(this.image, 0, 0); }
+  fitCanvas() {
+    const k = this.smooth ? 2 : 1;
+    this.canvas.width = this.W * k; this.canvas.height = this.H * k;
+    this.image2 = this.smooth ? this.ctx.createImageData(this.W * 2, this.H * 2) : null;
+    this.pix2 = this.smooth ? new Uint32Array(this.image2.data.buffer) : null;
+  }
+  // The smooth display turns on here. The world stays the same, so nothing needs a new bake
+  setSmooth(on) {
+    if (this.smooth === on) return;
+    this.smooth = on;
+    if (this.W) this.fitCanvas();
+  }
+  present() {
+    if (!this.smooth) { this.ctx.putImageData(this.image, 0, 0); return; }
+    this.scale2x();
+    this.ctx.putImageData(this.image2, 0, 0);
+  }
+  // Scale2x: a pixel on a stair-step edge fills its corner from its neighbours. Edges round off and flat colour stays sharp
+  scale2x() {
+    const { W, H, pix, pix2 } = this, W2 = W * 2;
+    for (let y = 0, i = 0, o = 0; y < H; y++, o += W2) {
+      const up = y > 0 ? -W : 0, dn = y < H - 1 ? W : 0;
+      for (let x = 0; x < W; x++, i++, o += 2) {
+        const e = pix[i], b = pix[i + up], h = pix[i + dn], d = x > 0 ? pix[i - 1] : e, f = x < W - 1 ? pix[i + 1] : e;
+        if (b !== h && d !== f) {
+          pix2[o] = d === b ? d : e; pix2[o + 1] = b === f ? f : e;
+          pix2[o + W2] = d === h ? d : e; pix2[o + W2 + 1] = h === f ? f : e;
+        } else { pix2[o] = e; pix2[o + 1] = e; pix2[o + W2] = e; pix2[o + W2 + 1] = e; }
+      }
+    }
+  }
   // one pixel with a depth test, at a world position
   plot(x, y, z, color) {
     const ix = Math.floor(this.OX + (x - y) * TW), iy = Math.floor(this.OY + (x + y) * TH - z * ZS);
@@ -79,13 +109,14 @@ export class Frame {
     const i = iy * this.W + ix; this.pix[i] = mixc(this.pix[i], color, a);
   }
   // A stamp is a small baked picture with depth, drawn at a world anchor.
-  // opts: rows (how many rows to show, counted from the bottom), dx, dy, shear (pixels per row from the base), tilt
+  // opts: rows (how many rows to show, counted from the bottom), dx, dy, shear (pixels per row from the base), tilt (pixels up per column from the anchor)
   blit(st, x, y, z, opts) {
     const { W, H, pix, zb } = this;
     const ax = Math.round(this.OX + (x - y) * TW) - st.ox + (opts && opts.dx || 0), ay = Math.round(this.OY + (x + y) * TH - z * ZS) - st.oy + (opts && opts.dy || 0);
     const d0 = depthOf(x, y, z), sw = st.w, sh = st.h, sp = st.pix, sd = st.dep;
     const y0 = opts && opts.rows != null ? Math.max(0, sh - Math.ceil(opts.rows)) : 0, shear = opts && opts.shear || 0, base = st.oy;
     const yTop = opts && opts.hideBelow != null ? opts.hideBelow : sh;
+    if (opts && opts.tilt) { this.blitTilted(st, ax, ay, d0, opts.tilt); return; }
     for (let r = y0; r < sh && r < yTop; r++) {
       const py = ay + r;
       if (py < 0 || py >= H) continue;
@@ -96,6 +127,24 @@ export class Frame {
         const px = ax + c + off;
         if (px < 0 || px >= W) continue;
         const i = py * W + px, d = d0 + sd[k];
+        if (d <= zb[i]) continue;
+        zb[i] = d; pix[i] = col;
+      }
+    }
+  }
+  // a stamp on a slope: each column moves up or down as one, so uprights stay upright and the floor follows the track
+  blitTilted(st, ax, ay, d0, tilt) {
+    const { W, H, pix, zb } = this, sw = st.w, sh = st.h, sp = st.pix, sd = st.dep;
+    for (let c = 0; c < sw; c++) {
+      const px = ax + c;
+      if (px < 0 || px >= W) continue;
+      const up = (c - st.ox) * tilt, off = Math.round(up), dz = up / ZS * .5;
+      for (let r = 0, k = c; r < sh; r++, k += sw) {
+        const col = sp[k];
+        if (!col) continue;
+        const py = ay + r - off;
+        if (py < 0 || py >= H) continue;
+        const i = py * W + px, d = d0 + sd[k] + dz;
         if (d <= zb[i]) continue;
         zb[i] = d; pix[i] = col;
       }

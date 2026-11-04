@@ -4,7 +4,7 @@ Anu is a mobile-first town builder set in Indonesia. You build a small town on a
 
 ## Languages
 
-The game runs in English and Bahasa Indonesia. Choose the language on the title screen. A first visit follows the device language. `?lang=en` and `?lang=id` set the language in the URL.
+The game runs in English, Bahasa Indonesia and Simplified Chinese. Choose the language on the title screen. A first visit follows the device language. `?lang=en`, `?lang=id` and `?lang=zh` set the language in the URL.
 
 ## Play
 
@@ -52,9 +52,10 @@ Homes and shops must touch a road that reaches the gate. A pasar brings rice. Pe
 |---|---|
 | `public/js/sim/` | The simulation: fluids, buildings, months, traffic, plots. It has no DOM |
 | `public/js/gfx/` | The rasteriser, terrain, water, building art, particles |
+| `public/js/gfx/toons.js` | The people: planted feet, spring hips, lean, secondary motion and behaviour |
 | `public/js/ui/` | Icons and the map |
 | `public/js/i18n.js` | The language switch and the `t()` lookup |
-| `public/js/copy/` | All player copy, in `en.js` and `id.js` |
+| `public/js/copy/` | All player copy, in `en.js`, `id.js` and `zh.js` |
 | `public/js/audio.js` | The gamelan synth and sample playback |
 | `public/audio/` | Generated music, effects and voice |
 | `worker/` | The Cloudflare Worker: Turnstile check, session cookie, audio gate |

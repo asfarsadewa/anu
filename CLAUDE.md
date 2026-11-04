@@ -32,10 +32,13 @@ A mobile-first Indonesian town builder. Physics runs between monthly turns. DESI
 - `worker/` gates audio behind one Turnstile check, using the widget of the werewolf repo. Its hostname list must include anu.asfarlab.fun. Never print secrets. Set them with `wrangler secret put` on stdin. `serve.mjs` has no /api, so local play skips the check.
 - Check with `npx wrangler deploy --dry-run`.
 
+## The people
+- `gfx/toons.js` draws and moves the people. It is presentation only. The sim owns only the evacuation walkers' positions. Feet plant on the ground and swing to the next spot. A spring carries the hips. The spine leans with acceleration, wind and `world.groundAccel`. Keep their proportions chunky, so they read at phone zoom.
+
 ## Copy
 - All UI text, goals, card text, result lines and the README follow the ASD-STE100 register in the user's global instructions. A sentence must be a full sentence. Scan before a commit.
-- The game ships in English and Bahasa Indonesia. All player copy lives in `public/js/copy/en.js` and `public/js/copy/id.js`. Both are first class. Write the Indonesian as native copy, not as a literal translation. Terms: people = warga, labour = tenaga, rice = beras, tile = petak, plot = lahan, goal = target. Address the player as `kamu`.
-- `public/js/sim/` holds no copy. `canPlace` returns a key. `log` entries are `[key, params]`. `main.js` calls `t()`. `test/copy.test.mjs` checks that both files hold the same keys and placeholders.
+- The game ships in English, Bahasa Indonesia and Simplified Chinese. All player copy lives in `public/js/copy/`: `en.js`, `id.js` and `zh.js`. All are first class. Write each as native copy, not as a literal translation. Indonesian terms: people = warga, labour = tenaga, rice = beras, tile = petak, plot = lahan, goal = target. Address the player as `kamu`. Chinese terms: people = 居民, labour = 人力 (点), rice = 大米 (袋), tile = 格, plot = 地块, goal = 目标, macet = 拥堵. Address the player as `你`. The Chinese localises building and plot names. Only the name Anu stays in Latin script.
+- `public/js/sim/` holds no copy. `canPlace` returns a key. `log` entries are `[key, params]`. `main.js` calls `t()`. `test/copy.test.mjs` checks that all files hold the same keys and placeholders.
 - Bu Lurah's lines are in-fiction voice and are exempt. Script and subtitles live in `public/audio/voice/lines.json`.
 - Place names and Indonesian building names are proper nouns.
 

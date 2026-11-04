@@ -2,6 +2,7 @@
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; margin: 0; background: var(--paper); color: var(--ink); overflow: hidden; overscroll-behavior: none; }
 body { font: 13px/1.35 ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace; position: fixed; inset: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+html:lang(zh) body { font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "PingFang SC", "Noto Sans CJK SC", "Microsoft YaHei", monospace; }
 canvas { display: block; image-rendering: pixelated; }
 #c { position: absolute; left: 0; top: 0; touch-action: none; }
 [hidden] { display: none !important; }
@@ -75,12 +76,15 @@ body.running #toasts { bottom: calc(68px + var(--safe-b)); }
 #wordmark { margin-top: 2vh; }
 #title-sub { margin: 8px 0 auto; color: var(--muted); text-align: center; }
 #ts { pointer-events: auto; margin-bottom: 10px; }
-#lang { display: flex; margin-bottom: 10px; pointer-events: auto; }
-#lang button { min-height: 44px; background: var(--paper); color: var(--ink); }
-#lang button + button { border-left: 0; }
-#lang button[aria-pressed="true"] { background: var(--signal); font-weight: 700; }
-#lang button:active { background: var(--signal); color: var(--ink); }
-body.sharecard #lang { display: none; }
+#lang, #look { display: flex; margin-bottom: 6px; pointer-events: auto; }
+#look { margin-bottom: 10px; }
+#lang button, #look button { min-height: 38px; background: var(--paper); color: var(--ink); }
+#lang button + button, #look button + button { border-left: 0; }
+#lang button[aria-pressed="true"], #look button[aria-pressed="true"] { background: var(--signal); font-weight: 700; }
+#lang button:active, #look button:active { background: var(--signal); color: var(--ink); }
+body.sharecard #lang, body.sharecard #look { display: none; }
+/* the smooth display: the browser filters the doubled picture */
+body.smooth #c { image-rendering: auto; }
 #start { min-width: 200px; background: var(--ink); color: var(--paper); font-weight: 700; min-height: 52px; font-size: 15px; }
 
 #credit { pointer-events: auto; margin-top: 4px; padding: 12px 16px; color: var(--muted); text-decoration: none; }

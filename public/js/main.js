@@ -11,7 +11,7 @@ import { t, getLang, setLang, initialLang, subtitle } from './i18n.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('c'), scene = new Scene(canvas);
-const SAVE = 'anu.save', PROGRESS = 'anu.progress', MUTE = 'anu.mute';
+const SAVE = 'anu.save', PROGRESS = 'anu.progress', MUTE = 'anu.mute', LOOK = 'anu.look';
 const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode */ } }, del(k) { try { localStorage.removeItem(k); } catch { /* private mode */ } } };
 
 const G = { screen: 'title', world: null, level: null, sel: null, speed: 1, placed: [], fcWorker: null, fcStamp: 0, fcOn: false, drag: null, seenBarks: new Set(), dissolveTo: 1, ended: false };
@@ -21,12 +21,23 @@ window.__game = G; G.scene = scene; G.audio = A;
 const lc = (L, field) => t(`levels.${L.id}.${field}`);
 const weatherName = W => t('weather.' + (W.id || W));
 const cardDesc = type => t('cards.' + type);
+const cardName = type => t('names.' + type);
+// A log entry can name a building by its type
+const logLine = (key, params = {}) => t(key, params.type ? { ...params, name: cardName(params.type).toLowerCase() } : params);
 // Static text in the page carries its key in a data attribute
 function applyCopy() {
   document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
   document.querySelectorAll('[data-t-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.tAria)));
   document.querySelectorAll('[data-t-alt]').forEach(el => { el.alt = t(el.dataset.tAlt); });
   document.querySelectorAll('#lang button').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === getLang()));
+  document.querySelectorAll('#look button').forEach(b => b.setAttribute('aria-pressed', (b.dataset.look === 'smooth') === !!scene.frame.smooth));
+}
+
+// Pixels or smooth. Only the player's own choice is saved
+function applyLook(smooth, remember) {
+  scene.frame.setSmooth(smooth); document.body.classList.toggle('smooth', smooth);
+  if (remember) store.set(LOOK, smooth);
+  applyCopy();
 }
 
 const TITLE_LEVEL = {
@@ -46,7 +57,7 @@ function showTitle() {
   const w = new World(TITLE_LEVEL);
   w.weather = WEATHER.cerah;
   G.world = w;
-  scene.setInsets(180, 150);
+  scene.setInsets(180, 192);
   scene.setWorld(w);
   scene.dissolve = 1; G.dissolveTo = 1;
   drawWordmark($('wordmark'), scaleForWordmark());
@@ -85,7 +96,7 @@ function showMap() {
     const stars = prog[L.id] || 0, li = document.createElement('li'), b = document.createElement('button');
     b.type = 'button'; b.disabled = !open;
     const cont = save && save.id === L.id ? t('ui.saved') : '';
-    b.innerHTML = `<span class="n">${k + 1}</span><span class="t">${L.title}</span><span class="p">${cont}${t('ui.plotLine', { place: lc(L, 'place'), n: L.N })}</span><span class="s" aria-label="${t('ui.aStars', { n: stars })}">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`;
+    b.innerHTML = `<span class="n">${k + 1}</span><span class="t">${lc(L, 'title')}</span><span class="p">${cont}${t('ui.plotLine', { place: lc(L, 'place'), n: L.N })}</span><span class="s" aria-label="${t('ui.aStars', { n: stars })}">${'★'.repeat(stars)}${'☆'.repeat(3 - stars)}</span>`;
     b.addEventListener('click', () => { A.sfx('ui_tap'); $('map').hidden = true; introLevel(L); });
     b.addEventListener('pointerenter', () => drawMap($('map-c'), LEVELS, prog, k));
     li.append(b); list.append(li);
@@ -110,7 +121,7 @@ function goalHtml(L, w) {
 }
 function introLevel(L) {
   const save = store.get(SAVE), resume = save && save.id === L.id;
-  openSheet(`<h2>${L.title}</h2><p class="place">${t('ui.introLine', { place: lc(L, 'place'), months: L.months })}</p><p>${lc(L, 'brief')}</p>${goalHtml(L)}
+  openSheet(`<h2>${lc(L, 'title')}</h2><p class="place">${t('ui.introLine', { place: lc(L, 'place'), months: L.months })}</p><p>${lc(L, 'brief')}</p>${goalHtml(L)}
     <div class="row">${resume ? `<button id="restart" type="button">${t('ui.startAgain')}</button><button id="go" class="primary" type="button">${t('ui.continue')}</button>` : `<button id="back" type="button">${t('ui.map')}</button><button id="go" class="primary" type="button">${t('ui.begin')}</button>`}</div>`, s => {
     s.querySelector('#go').addEventListener('click', () => { A.sfx('ui_tap'); closeSheet(); startLevel(L, resume ? save : null); });
     const r = s.querySelector('#restart'); if (r) r.addEventListener('click', () => { A.sfx('ui_tap'); store.del(SAVE); closeSheet(); startLevel(L); });
@@ -153,7 +164,7 @@ function buildCards() {
     const c = document.createElement('canvas');
     paintCard(c, type, L.style === 'mix' ? 'joglo' : L.style);
     btn.append(c);
-    btn.insertAdjacentHTML('beforeend', `<span class="cost" aria-label="${t('ui.aCost', { n: cat.cost })}">${cat.cost}</span><span class="nm">${cat.name}</span>`);
+    btn.insertAdjacentHTML('beforeend', `<span class="cost" aria-label="${t('ui.aCost', { n: cat.cost })}">${cat.cost}</span><span class="nm">${cardName(type)}</span>`);
     btn.addEventListener('click', () => selectCard(type));
     host.append(btn);
   }
@@ -291,7 +302,7 @@ function selectCardOff() {
 function monthEnded(log) {
   const w = G.world;
   document.body.classList.remove('running');
-  (log || []).forEach(([key, params], k) => setTimeout(() => toast(t(key, params), /destroyed|Left|drowned|Lost|Failed/.test(key) ? 'bad' : 'log'), k * 180));
+  (log || []).forEach(([key, params], k) => setTimeout(() => toast(logLine(key, params), /destroyed|Left|drowned|Lost|Failed/.test(key) ? 'bad' : 'log'), k * 180));
   $('runbar').hidden = true;
   if (!G.level.music) A.playMood('plan'); ambience();
   if (w.done) { endLevel(); return; }
@@ -320,7 +331,7 @@ function showResult(won) {
   const w = G.world, L = G.level, k = LEVELS.indexOf(L), next = LEVELS[k + 1];
   const s = won ? w.done.stars : 0;
   sheet.classList.toggle('low', won);
-  openSheet(`<h2>${t(won ? 'ui.won' : 'ui.lost')}</h2><p class="place">${t('ui.resultLine', { title: L.title, m: w.month, n: L.months })}</p>
+  openSheet(`<h2>${t(won ? 'ui.won' : 'ui.lost')}</h2><p class="place">${t('ui.resultLine', { title: lc(L, 'title'), m: w.month, n: L.months })}</p>
     ${won ? `<p class="big" aria-label="${t('ui.aStars', { n: s })}">${'★'.repeat(s)}${'☆'.repeat(3 - s)}</p>` : `<p>${failReason(w, L)}</p>`}
     <div class="stats"><div><b>${w.people}</b>${t('ui.statPeople')}</div><div><b>${w.rice}</b>${t('ui.statRice')}</div><div><b>${w.destroyed}</b>${t('ui.statLost')}</div></div>
     ${goalHtml(L, w)}
@@ -421,7 +432,7 @@ function showInfo(b) {
   else if (b.type === 'kincir') lines.push(t(b.lift ? 'info.wheelLifts' : 'info.wheelIdle'));
   const label = t(b.ruin ? 'info.clearRubble' : G.placed.includes(b) ? 'ui.undo' : 'info.remove');
   const canAct = !w.running;
-  openSheet(`<h2>${cat.name}</h2><p class="place">${t('info.tileLine', { x: b.x + 1, y: b.y + 1, h: w.tileHeight(b.x, b.y) })}</p>${lines.map(l => `<p>${l}</p>`).join('')}
+  openSheet(`<h2>${cardName(b.type)}</h2><p class="place">${t('info.tileLine', { x: b.x + 1, y: b.y + 1, h: w.tileHeight(b.x, b.y) })}</p>${lines.map(l => `<p>${l}</p>`).join('')}
     <div class="row"><button id="close" type="button">${t('ui.close')}</button>${canAct ? `<button id="act" type="button">${label}</button>` : ''}</div>`, s => {
     s.querySelector('#close').addEventListener('click', () => { A.sfx('ui_tap'); closeSheet(); });
     const act = s.querySelector('#act');
@@ -474,7 +485,7 @@ async function gate() {
   });
   const token = await new Promise((res, rej) => {
     const fail = () => { rej(new Error('turnstile')); return true; };
-    tsWidget = window.turnstile.render('#ts', { sitekey: cfg.siteKey, action: cfg.action, language: getLang(), appearance: 'interaction-only', callback: res, 'error-callback': fail, 'expired-callback': fail, 'timeout-callback': fail, 'unsupported-callback': fail, 'before-interactive-callback': () => { $('title-sub').textContent = t('ui.securityAsk'); } });
+    tsWidget = window.turnstile.render('#ts', { sitekey: cfg.siteKey, action: cfg.action, language: getLang() === 'zh' ? 'zh-cn' : getLang(), appearance: 'interaction-only', callback: res, 'error-callback': fail, 'expired-callback': fail, 'timeout-callback': fail, 'unsupported-callback': fail, 'before-interactive-callback': () => { $('title-sub').textContent = t('ui.securityAsk'); } });
   });
   const r = await fetch('/api/session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token }) });
   return r.ok;
@@ -499,13 +510,14 @@ $('forecast').addEventListener('click', runForecast);
 $('speed').addEventListener('click', () => { G.speed = G.speed > 1 ? 1 : 3; $('speed').setAttribute('aria-pressed', G.speed > 1); $('speed').textContent = t(G.speed > 1 ? 'ui.fast3' : 'ui.fast'); A.sfx('ui_tap'); });
 $('goal').addEventListener('click', () => {
   A.sfx('ui_tap');
-  openSheet(`<h2>${G.level.title}</h2><p class="place">${lc(G.level, 'place')}</p><p>${lc(G.level, 'brief')}</p>${goalHtml(G.level)}<div class="row"><button id="close" class="primary" type="button">${t('ui.close')}</button></div>`, s => s.querySelector('#close').addEventListener('click', closeSheet));
+  openSheet(`<h2>${lc(G.level, 'title')}</h2><p class="place">${lc(G.level, 'place')}</p><p>${lc(G.level, 'brief')}</p>${goalHtml(G.level)}<div class="row"><button id="close" class="primary" type="button">${t('ui.close')}</button></div>`, s => s.querySelector('#close').addEventListener('click', closeSheet));
 });
 $('menu').addEventListener('click', () => {
   A.sfx('ui_tap');
-  openSheet(`<h2>${t('ui.menu')}</h2><p class="place">${G.level ? G.level.title : ''}</p>
-    <div class="row"><button id="close" type="button">${t('ui.close')}</button></div><div class="row"><button id="restart" type="button">${t('ui.restartPlot')}</button></div><div class="row"><button id="to-map" type="button">${t('ui.map')}</button></div>`, s => {
+  openSheet(`<h2>${t('ui.menu')}</h2><p class="place">${G.level ? lc(G.level, 'title') : ''}</p>
+    <div class="row"><button id="close" type="button">${t('ui.close')}</button></div><div class="row"><button id="look-toggle" type="button">${t(scene.frame.smooth ? 'ui.usePixels' : 'ui.useSmooth')}</button></div><div class="row"><button id="restart" type="button">${t('ui.restartPlot')}</button></div><div class="row"><button id="to-map" type="button">${t('ui.map')}</button></div>`, s => {
     s.querySelector('#close').addEventListener('click', closeSheet);
+    s.querySelector('#look-toggle').addEventListener('click', () => { A.sfx('ui_tap'); applyLook(!scene.frame.smooth, true); closeSheet(); });
     s.querySelector('#restart').addEventListener('click', () => { closeSheet(); store.del(SAVE); startLevel(G.level); });
     s.querySelector('#to-map').addEventListener('click', () => { closeSheet(); A.stopMood(); showMap(); });
   });
@@ -518,6 +530,7 @@ explain('s-people', 'ui.explainPeople');
 explain('s-rice', 'ui.explainRice');
 explain('s-labour', 'ui.explainLabour');
 document.querySelectorAll('#lang button').forEach(b => b.addEventListener('click', () => { A.sfx('ui_tap'); setLang(b.dataset.lang, true); applyCopy(); }));
+document.querySelectorAll('#look button').forEach(b => b.addEventListener('click', () => { A.sfx('ui_tap'); applyLook(b.dataset.look === 'smooth', true); }));
 for (const kind of ['pointerdown', 'keydown']) addEventListener(kind, () => A.unlockAudio(), { capture: true, passive: true });
 
 scene.sfx = id => A.sfx(id, { gain: /hammer|saw|lash|brick|tile|dig|thud/.test(id) ? .32 : .6, gap: /hammer|saw|lash|brick|tile|dig|thud/.test(id) ? .16 : .3 });
@@ -585,7 +598,7 @@ applyMute(!!store.get(MUTE));
 const params = new URLSearchParams(location.search);
 // ?still always renders in English, so the share card does not follow the machine's language
 setLang(params.has('still') ? 'en' : params.get('lang') || initialLang());
-applyCopy();
+applyLook(!params.has('still') && (params.has('look') ? params.get('look') === 'smooth' : !!store.get(LOOK)));
 if (params.has('level')) { showTitle(); G.startLevel(params.get('level')); } else showTitle();
 // ?still shows the picture alone, for the share card and the icons
 if (params.get('still') === 'icon') { $('title').hidden = true; }

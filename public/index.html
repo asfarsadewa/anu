@@ -46,7 +46,7 @@
 </header>
 
 <div id="toasts" aria-live="polite"></div>
-<div id="say" hidden><img id="say-face" alt=""><p><b>Bu Lurah</b><span id="say-text"></span></p></div>
+<div id="say" hidden><img id="say-face" alt=""><p><b data-t="ui.speaker">Bu Lurah</b><span id="say-text"></span></p></div>
 
 <footer id="tray" hidden>
   <div id="cards" role="listbox" data-t-aria="ui.aBuildings" aria-label="Buildings"></div>
@@ -63,9 +63,10 @@
 
 <section id="title" hidden>
   <canvas id="wordmark" width="10" height="10" aria-label="Anu"></canvas>
-  <p id="title-sub" data-t="ui.titleSub">A town builder set in Indonesia.</p>
+  <p id="title-sub" data-t="ui.titleSub">A town builder.</p>
   <div id="ts"></div>
-  <div id="lang" role="group" aria-label="Language / Bahasa"><button type="button" data-lang="en" lang="en">English</button><button type="button" data-lang="id" lang="id">Bahasa Indonesia</button></div>
+  <div id="lang" role="group" aria-label="Language / Bahasa / 语言"><button type="button" data-lang="en" lang="en">English</button><button type="button" data-lang="id" lang="id">Bahasa Indonesia</button><button type="button" data-lang="zh" lang="zh-Hans">中文</button></div>
+  <div id="look" role="group" data-t-aria="ui.aLook" aria-label="Display"><button type="button" data-look="pixels" data-t="ui.lookPixels">Pixels</button><button type="button" data-look="smooth" data-t="ui.lookSmooth">Smooth</button></div>
   <button id="start" type="button" data-t="ui.start">Tap to start</button>
   <a id="credit" href="https://x.com/ashthepeasant" target="_blank" rel="noopener">@ashthepeasant</a>
 </section>

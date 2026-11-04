@@ -8,6 +8,7 @@ import { drawFluids } from './water.js';
 import { blueprint, cardArt } from './buildings.js';
 import { palm, tree, banana, rock, spring, farHut, farTree, farPalm, farBlock } from './flora.js';
 import { Particles, Sticks, Debris, Rope, P_DUST, P_SMOKE, P_SPRAY, P_ASH, P_LEAF, P_CHIP, P_SPARK, P_CONFETTI, surfaceAt } from './bodies.js';
+import { Crowd } from './toons.js';
 import { beginStamp, endStamp, box, quad, tri, pole, sphere, column, mat, WOOD, PAINT_RED, PAINT_BLUE } from './stamps.js';
 
 const PAPER = rgb(255, 253, 247);
@@ -21,6 +22,7 @@ const FONT = { 0: '111101101101111', 1: '110010010010111', 2: '111001111100111',
 const world_freight = w => (w.level.rail && w.level.rail[0].freight) || 0;
 // buses, trucks and rail cars in both axes
 const vStamps = new Map();
+const BOGIE = .36; // from the middle of a car to each bogie, in tiles
 function vehicleStamp(kind, axis, seed = 0) {
   const paint = kind === 'bus' ? seed % 3 : kind === 'truck' ? seed % 2 : 0, key = kind + axis + paint;
   if (vStamps.has(key)) return vStamps.get(key);
@@ -78,18 +80,17 @@ export class Scene {
     this.frame = new Frame(canvas);
     this.fx = new Particles(); this.sticks = new Sticks(); this.debris = new Debris();
     this.world = null; this.vis = new Map(); this.time = 0; this.sfx = () => {}; this.cue = () => {};
-    this.staticDirty = true; this.terrainDirty = true; this.rainDrops = []; this.floats = []; this.flags = []; this.crew = new Map(); this.walkers = []; this.tufts = []; this.plants = []; this.ropes = new Map();
+    this.staticDirty = true; this.terrainDirty = true; this.rainDrops = []; this.floats = []; this.flags = []; this.crowd = new Crowd(this); this.tufts = []; this.plants = []; this.ropes = new Map();
     this.overlay = { tile: null, ghost: null, valid: true, showGrid: false, forecast: null, chips: null };
     this.dissolve = 0; this.islandBake = null; this.shake = 0; this.insets = { top: 96, bottom: 160 };
     this.lightning = 0; this.ashDim = 0; this.liveAll = false; this.grade = { night: 0 };
   }
   setInsets(top, bottom) { this.insets = { top, bottom }; }
   setWorld(world) {
-    this.world = world; this.ashDim = 0; this.cars = []; this.lamps = []; this.vis.clear(); this.crew.clear(); this.ropes.clear(); this.floats = []; this.flags = [];
+    this.world = world; this.ashDim = 0; this.cars = []; this.lamps = []; this.vis.clear(); this.crowd.reset(); this.ropes.clear(); this.floats = []; this.flags = [];
     this.fx.n = 0; this.sticks.list = []; this.debris.list = []; this.overlay.forecast = null; this.islandBake = null;
     this.layout(true);
     this.buildNature();
-    this.walkers = [];
   }
   layout(force) {
     const dpr = window.devicePixelRatio || 1, dw = Math.round(innerWidth * dpr), dh = Math.round(innerHeight * dpr);
@@ -361,7 +362,7 @@ export class Scene {
     const w = this.world, wind = w.running ? w.windAt() : [w.windBase[0] * .5, w.windBase[1] * .5];
     this.fx.step(w, wind); this.sticks.step(w); this.debris.step(w);
     this.windNow = wind;
-    this.stepWalkers();
+    this.crowd.step();
     this.stepTraffic();
     for (const [id, rope] of this.ropes) if (rope.update) rope.update();
     if (w.running) this.emitWorldFx(wind);
@@ -475,12 +476,22 @@ export class Scene {
         const s = tr.s - tr.dir * c * 1.05;
         if (s < -.6 || s > line.L + .6) continue;
         const q = line.pos(Math.max(0, Math.min(line.L, s))), o = s < 0 ? s : s > line.L ? s - line.L : 0, ax = Math.abs(q.dx) > 0 ? 'x' : 'y', sgn = 1;
-        const x = q.x + (ax === 'x' ? o * Math.sign(q.dx) : 0), y = q.y + (ax === 'y' ? o * Math.sign(q.dy) : 0), z = line.zAt(s) + .01;
+        // two bogies stand on the track. The body takes its height and its slope from them
+        const x = q.x + (ax === 'x' ? o * Math.sign(q.dx) : 0), y = q.y + (ax === 'y' ? o * Math.sign(q.dy) : 0), zA = line.zAt(s - BOGIE), zB = line.zAt(s + BOGIE), z = (zA + zB) / 2 + .01;
+        const rise = (zB - zA) / (BOGIE * 2) * Math.sign(ax === 'x' ? q.dx : q.dy), tilt = rise * ZS / TW * (ax === 'x' ? 1 : -1);
         const outside = Math.hypot(x < 0 ? -x : x > N ? x - N : 0, y < 0 ? -y : y > N ? y - N : 0);
         if (outside > 1.8) continue;
         const kind = c === 0 ? tr.kind + ':head' : tr.kind;
         const st = vehicleStamp(kind, ax, c);
-        frame.blit(st, x, y, z); frame.blitShadow(st, x, y, z);
+        if (Math.abs(rise) < .02) { frame.blit(st, x, y, z); frame.blitShadow(st, x, y, z); } else frame.blit(st, x, y, z, { tilt });
+        // the coupler to the car in front
+        if (c > 0) {
+          const s0 = s + tr.dir * .46, s1 = s + tr.dir * .59;
+          if (s0 > -.4 && s0 < line.L + .4) for (let u = 0; u <= 6; u++) {
+            const sc = s0 + (s1 - s0) * u / 6, pc = line.pos(Math.max(0, Math.min(line.L, sc))), zc = line.zAt(sc) + .1;
+            frame.plot(pc.x, pc.y, zc, rgb(38, 34, 38)); frame.plot(pc.x, pc.y, zc + .03, rgb(70, 64, 62));
+          }
+        }
         if (c === 0) { // smoke and slipping wheels
           if (tr.kind === 'steam' && Math.random() < (tr.slip ? .9 : .5)) this.fx.add(P_SMOKE, x, y, z + .55, tr.dir * -.3 * (ax === 'x' ? Math.sign(q.dx) : 0), tr.dir * -.3 * (ax === 'y' ? Math.sign(q.dy) : 0), .5, 1.7, 2, rgb(190, 190, 192));
           if (tr.slip && Math.random() < .6) this.fx.add(P_SPARK, x, y, z + .05, (Math.random() - .5) * .8, (Math.random() - .5) * .8, .6, .3);
@@ -488,8 +499,8 @@ export class Scene {
       }
     }
     // people waiting at stops and platforms
-    for (const st of t.stops) { let n = 0; for (const c of st.waiting.values()) n += c; for (let k = 0; k < Math.min(6, n); k++) this.drawFigure(st.x + .25 + k * .09, st.y + .68, world.tileHeight(st.x, st.y) * STEP, hexc(SHIRTS[(k * 3 + st.x) % 6]), hexc(SKIN[k % 3]), 0, 'stand', this.time); }
-    for (const st of t.stations) for (let k = 0; k < Math.min(12, st.waiting.length); k++) { const a = st.b.facing || 'x+', side = a[1] === '+' ? 1 : -1, ux = a[0] === 'x' ? -.7 + k * .13 : side * .6, uy = a[0] === 'x' ? side * .6 : -.7 + k * .13; this.drawFigure(st.x + ux + .5, st.y + uy + .5, world.tileHeight(st.b.x, st.b.y) * STEP + .1, hexc(SHIRTS[(k * 5) % 6]), hexc(SKIN[k % 3]), 0, 'stand', this.time); }
+    for (const st of t.stops) { let n = 0; for (const c of st.waiting.values()) n += c; for (let k = 0; k < Math.min(6, n); k++) this.crowd.still(`s${st.x},${st.y},${k}`, st.x + .25 + k * .09, st.y + .68, world.tileHeight(st.x, st.y) * STEP, k * 7 + st.x * 3 + 2, 'idle'); }
+    for (const st of t.stations) for (let k = 0; k < Math.min(12, st.waiting.length); k++) { const a = st.b.facing || 'x+', side = a[1] === '+' ? 1 : -1, ux = a[0] === 'x' ? -.7 + k * .13 : side * .6, uy = a[0] === 'x' ? side * .6 : -.7 + k * .13; this.crowd.still(`t${st.b.id},${k}`, st.x + ux + .5, st.y + uy + .5, world.tileHeight(st.b.x, st.b.y) * STEP + .1, k * 11 + 4, 'idle'); }
     // crossing arms and lights
     for (let cy = 0; cy < N; cy++) for (let cx = 0; cx < N; cx++) {
       if (!world.railTile[cy * N + cx]) continue;
@@ -530,30 +541,6 @@ export class Scene {
       }
     }
   }
-  // the crew and the people. People walk on tile edges, so they pass between buildings
-  stepWalkers() {
-    const w = this.world, want = Math.min(16, Math.ceil(w.people / 3));
-    while (this.walkers.length < want) {
-      const homes = w.buildings.filter(b => CATALOG[b.type].home && !b.ruin && b.done);
-      const anchors = homes.length ? homes : w.buildings;
-      if (!anchors.length) break;
-      const a = anchors[Math.random() * anchors.length | 0], k = this.walkers.length * 7 + 3;
-      this.walkers.push({ x: a.x + (Math.random() < .5 ? 0 : 1), y: a.y + (Math.random() < .5 ? 0 : 1), tx: 0, ty: 0, wait: Math.random() * 3, shirt: hexc(SHIRTS[k % 6]), skin: hexc(SKIN[k % 3]), hat: hash(k, 2) > .5 ? hexc(HATS[k % 3]) : 0, a: 0, moving: false });
-    }
-    while (this.walkers.length > want) this.walkers.pop();
-    for (const p of this.walkers) {
-      if (w.evac.length) { p.hidden = true; continue; }
-      if (p.wait > 0) { p.wait -= DT; p.moving = false; continue; }
-      if (!p.moving) {
-        const dir = [[1, 0], [-1, 0], [0, 1], [0, -1]][Math.random() * 4 | 0];
-        const ax = Math.round(p.x) + dir[0], ay = Math.round(p.y) + dir[1];
-        if (ax < -.1 || ay < -.1 || ax > w.N + .1 || ay > w.N + .1 || !this.walkable(ax, ay)) { p.wait = .5; continue; }
-        p.tx = ax; p.ty = ay; p.moving = true;
-      }
-      const dx = p.tx - p.x, dy = p.ty - p.y, L = Math.hypot(dx, dy), s = .34 * DT;
-      if (L < s) { p.x = p.tx; p.y = p.ty; p.moving = false; p.wait = .4 + Math.random() * 4; } else { p.x += dx / L * s; p.y += dy / L * s; p.a += s * 22; p.flip = dx - dy > 0; }
-    }
-  }
   walkable(x, y) {
     const w = this.world, i = w.idx(x, y);
     if (i < 0) return false;
@@ -569,10 +556,10 @@ export class Scene {
         case 'placed': {
           this.vis.set(e.b.id, { t: e.b.done ? 1 : 0, lastT: e.b.done ? 1 : 0 });
           this.staticDirty = true;
-          if (!e.b.done) this.crew.set(e.b.id, this.makeCrew(e.b));
+          if (!e.b.done) this.crowd.makeCrew(e.b);
           break;
         }
-        case 'removed': { this.vis.delete(e.b.id); this.crew.delete(e.b.id); this.staticDirty = true; break; }
+        case 'removed': { this.vis.delete(e.b.id); this.crowd.crews.delete(e.b.id); this.staticDirty = true; break; }
         case 'collapse': this.onCollapse(e.b); break;
         case 'harvest': this.onHarvest(e.b, e.y); break;
         case 'quake': this.liveAll = true; this.staticDirty = true; this.sfx('rumble'); this.cue('quake'); break;
@@ -589,7 +576,7 @@ export class Scene {
         case 'trainStall': this.sfx('steam_chuff'); this.cue('stall'); break;
         case 'cargo': this.floats.push({ x: e.x, y: e.y, z: 1, t: 0, text: '+' + (world_freight(this.world)), color: SIGNAL }); this.sfx('harvest'); break;
         case 'lostOne': this.fx.add(P_SPRAY, e.x, e.y, 1, 0, 0, .8, .4); break;
-        case 'finished': { const v = this.vis.get(e.b.id); if (v) v.t = 1; this.crew.delete(e.b.id); this.staticDirty = true; break; }
+        case 'finished': { const v = this.vis.get(e.b.id); if (v) v.t = 1; this.crowd.crews.delete(e.b.id); this.staticDirty = true; break; }
         case 'monthEnd': this.cue('monthEnd', e.log); break;
       }
     }
@@ -606,18 +593,14 @@ export class Scene {
     }
     if (!w.quake && this.liveAll) { this.liveAll = false; this.staticDirty = true; }
   }
-  makeCrew(b) {
-    const foot = CATALOG[b.type].foot || 1, n = foot > 1 ? 4 : b.type === 'sawah' || b.type === 'saluran' ? 2 : 3, crew = [];
-    for (let k = 0; k < n; k++) crew.push({ a: k / n * 6.283 + .6, shirt: hexc(SHIRTS[(b.id + k) % 6]), skin: hexc(SKIN[(b.id + k) % 3]), hat: hexc(HATS[k % 3]), phase: k * 1.7 });
-    return crew;
-  }
   onCollapse(b) {
     const [x, y, z] = this.anchor(b), bp = this.bpOf(b);
+    this.crowd.startle(x, y);
     this.debris.shatter(bp.done, x, y, z, this.world, CATALOG[b.type].floor < .1 ? .8 : 1.2);
     this.fx.burst(P_DUST, x, y, z + .2, 22, .7, 1.1, 3);
     this.fx.burst(P_CHIP, x, y, z + .4, 26, 1.2, 1.6, 1);
     for (const s of bp.sticks.slice(0, 6)) this.sticks.add(s[0], s[1], x, y, z, [(Math.random() - .5) * 2, (Math.random() - .5) * 2], [rgb(150, 124, 76), rgb(190, 166, 100)], 4);
-    this.vis.delete(b.id); this.crew.delete(b.id);
+    this.vis.delete(b.id); this.crowd.crews.delete(b.id);
     this.sfx('collapse'); this.shake = Math.max(this.shake, .5);
     this.staticDirty = true;
     this.floats.push({ x, y, z: z + .8, t: 0, text: 'X', color: BAD });
@@ -652,12 +635,12 @@ export class Scene {
         this.fx.burst(P_CHIP, x, y, z + bp.height * .5, 4, .8, .7, 1);
       }
     }
-    if (v.lastT < .85 && v.t >= .85) { this.flags.push({ b, x, y, z, ridge: bp.ridge, t: 0 }); this.sfx('cheer'); }
+    if (v.lastT < .85 && v.t >= .85) { this.flags.push({ b, x, y, z, ridge: bp.ridge, t: 0 }); this.sfx('cheer'); this.crowd.cheerAt(x, y); }
     if (v.lastT < .92 && v.t >= .92) { // strike the scaffold: the poles come down
       for (const s of bp.sticks) this.sticks.add(s[0], s[1], x, y, z, [(Math.random() - .5) * 1.2, (Math.random() - .5) * 1.2], [rgb(150, 124, 76), rgb(190, 166, 100)]);
       if (bp.sticks.length) this.sfx('lash');
     }
-    if (v.t >= 1) { this.staticDirty = true; this.crew.delete(b.id); this.fx.burst(P_DUST, x, y, z + .02, 6, .5, .6, 2); }
+    if (v.t >= 1) { this.staticDirty = true; this.crowd.crews.delete(b.id); this.fx.burst(P_DUST, x, y, z + .02, 6, .5, .6, 2); }
     return v;
   }
   drawLive(b) {
@@ -702,42 +685,8 @@ export class Scene {
     rope.step(top, load, this.windNow || [0, 0]);
     rope.draw(frame, rgb(226, 214, 180));
   }
-  drawCrew(b, x, y, z, bp, t) {
-    const crew = this.crew.get(b.id);
-    if (!crew) return;
-    const foot = CATALOG[b.type].foot || 1, R = .54 * foot + .06, working = this.world.running && t < .92;
-    const flat = bp.height < .3;
-    crew.forEach((c, k) => {
-      const ang = c.a + (working ? Math.sin(this.time * .2 + c.phase) * .3 : 0);
-      const px = x + Math.cos(ang) * R, py = y + Math.sin(ang) * R;
-      // one worker climbs to the deck on tall work
-      const onDeck = !flat && k === 0 && t > .3 && t < .88, zz = onDeck ? z + Math.min(bp.height * .7, (t - .2) * bp.height) : this.groundAt(px, py);
-      const strike = working && Math.sin(this.time * 7 + c.phase) > .6;
-      this.drawFigure(px, py, zz, c.shirt, c.skin, c.hat, working ? (k === 1 ? 'carry' : strike ? 'strike' : 'work') : 'stand', this.time + c.phase);
-      if (strike && Math.random() < .1) this.fx.add(P_CHIP, x + Math.cos(ang) * R * .7, y + Math.sin(ang) * R * .7, zz + .2, (Math.random() - .5) * .5, (Math.random() - .5) * .5, .7, .4);
-    });
-  }
+  drawCrew(b) { this.crowd.drawCrew(b.id); }
   groundAt(x, y) { const i = this.world.idx(x, y); return i < 0 ? 0 : this.world.base[i]; }
-  // a figure is 7 or 8 pixels tall: legs, shirt, skin, hat
-  drawFigure(x, y, z, shirt, skin, hat, pose, t) {
-    const { frame } = this, { W, H, pix, zb, OX, OY } = frame, sx = Math.floor(OX + (x - y) * TW), sy = Math.floor(OY + (x + y) * TH - z * ZS), d = depthOf(x, y, z) + .06;
-    const put = (dx, dy, c) => { const ix = sx + dx, iy = sy + dy; if (ix < 0 || iy < 0 || ix >= W || iy >= H) return; const i = iy * W + ix; if (d + (-dy) * .02 <= zb[i]) return; zb[i] = d + (-dy) * .02; pix[i] = c; };
-    const legs = rgb(52, 46, 54), step = Math.sin(t * 8) > 0;
-    // contact shadow
-    const sd = rgb(40, 40, 60);
-    for (const dx of [-1, 0, 1]) { const ix = sx + dx, iy = sy; if (ix >= 0 && iy >= 0 && ix < W && iy < H) { const i = iy * W + ix; if (zb[i] < d) pix[i] = mixc(pix[i], sd, .45); } }
-    const bend = pose === 'farm' ? 2 : 0;
-    if (pose === 'walk' || pose === 'run') { put(step ? -1 : 0, -1, legs); put(step ? 0 : 1, -1, legs); put(0, -2, legs); put(-1, -2, legs); } else { put(-1, -1, legs); put(0, -1, legs); put(-1, -2, legs); put(0, -2, legs); }
-    if (bend) { // bent over a paddy
-      put(-1, -3, shirt); put(0, -3, shirt); put(1, -3, shirt); put(1, -4, shirt); put(2, -3, skin); put(2, -4, hat || skin); put(1, -5, hat || skin); put(2, -5, hat || skin); put(3, -4, hat || skin); put(2, -2, skin);
-      return;
-    }
-    put(-1, -3, shirt); put(0, -3, shirt); put(-1, -4, shirt); put(0, -4, shirt);
-    if (pose === 'carry') { put(-1, -7, rgb(150, 120, 80)); put(0, -7, rgb(170, 134, 88)); put(-2, -7, rgb(130, 104, 72)); put(1, -7, rgb(150, 120, 80)); }
-    put(-1, -5, skin); put(0, -5, skin); put(-1, -6, skin); put(0, -6, skin);
-    if (hat) { put(-2, -6, hat); put(1, -6, hat); put(-1, -6, hat); put(0, -6, hat); put(-1, -7, hat); put(0, -7, hat); }
-    if (pose === 'strike') { put(1, -5, skin); put(2, -6, rgb(120, 96, 70)); put(2, -7, rgb(120, 120, 124)); } else if (pose === 'work') { put(1, -4, skin); put(2, -4, rgb(120, 96, 70)); } else if (pose === 'cheer') { put(-2, -6, skin); put(1, -6, skin); put(-2, -7, skin); put(1, -7, skin); } else { put(1, -4, skin); put(-2, -4, skin); }
-  }
   drawWheel(b, x, y, z) {
     const { frame } = this, R = .36, cz = z + .42, a = b.angle || 0, wood = rgb(120, 92, 66), wet = rgb(150, 190, 200);
     for (let k = 0; k < 8; k++) {
@@ -772,7 +721,7 @@ export class Scene {
     }
     if (stage < 3 && this.world.running && hash(b.id, 2) < .6) { // a farmer works the row
       const t = this.time * .06 + b.id, px = b.x + .2 + (Math.sin(t) * .5 + .5) * .6, py = b.y + .2 + (Math.sin(t * .7 + 1) * .5 + .5) * .6;
-      this.drawFigure(px, py, world.base[world.idx(px, py)] + world.w[world.idx(px, py)], hexc(SHIRTS[b.id % 6]), hexc(SKIN[b.id % 3]), hexc(HATS[b.id % 3]), 'farm', this.time);
+      this.crowd.still(`f${b.id}`, px, py, world.base[world.idx(px, py)], b.id * 5 + 3, 'farm', q => { q.hat = 'caping'; q.hatC = hexc(HATS[b.id % 3]); q.skirt = null; q.tail = 0; q.tailPts = null; q.legs = 3; q.torso = 3; q.kind = 'adult'; q.crouch = 1.4; });
     }
   }
   drawTufts() {
@@ -812,7 +761,7 @@ export class Scene {
     if (!rope) { rope = new Rope(hand, [cx, cy, cz], 9, 1.012); this.ropes.set('k' + b.id, rope); }
     rope.step(hand, [cx, cy, cz], this.windNow || [0, 0]);
     rope.draw(frame, rgb(244, 240, 226));
-    this.drawFigure(b.x + .5, b.y + .5, b.ground, hexc(SHIRTS[b.id % 6]), hexc(SKIN[b.id % 3]), 0, 'stand', this.time);
+    this.crowd.still(`k${b.id}`, b.x + .5, b.y + .5, b.ground, b.id * 18 + 2, 'stretch');
     // the kite: a diamond with a tail, drawn over everything because it flies high
     const sx = Math.floor(frame.OX + (cx - cy) * TW), sy = Math.floor(frame.OY + (cx + cy) * TH - cz * ZS), col = [rgb(214, 62, 54), rgb(250, 208, 70), rgb(60, 120, 190), rgb(240, 240, 230)][b.id % 4], c2 = rgb(240, 240, 230);
     for (let r = -3; r <= 3; r++) for (let q = -(3 - Math.abs(r)); q <= 3 - Math.abs(r); q++) frame.put(sx + q, sy + r, r < 0 ? col : (q === 0 ? c2 : tintc(col, .8, .78, .84)));
@@ -907,19 +856,7 @@ export class Scene {
       if (this.isLive(b)) this.drawLive(b);
       if (b.type === 'lapangan' && (b.done || b.prog > .6)) this.drawKite(b);
     }
-    for (const p of this.walkers) {
-      if (p.hidden) continue;
-      const i = world.idx(p.x, p.y);
-      if (i < 0) continue;
-      this.drawFigure(p.x, p.y, world.base[i], p.shirt, p.skin, p.hat, p.moving ? 'walk' : 'stand', this.time);
-    }
-    for (const e of world.evac) {
-      if (e.lost) continue;
-      const i = world.idx(e.x, e.y);
-      if (i < 0) continue;
-      const k = e.home * 3 + 1;
-      this.drawFigure(e.x, e.y, world.base[i], e.safe ? hexc(SHIRTS[3]) : hexc(SHIRTS[k % 6]), hexc(SKIN[k % 3]), 0, e.delay > 0 ? 'stand' : e.safe ? 'cheer' : 'run', this.time);
-    }
+    this.crowd.draw();
     this.drawTraffic();
     frame.resolveShadows(frame.zb); // shadows from things that move, on what they touch
     this.sticks.draw(frame); this.debris.draw(frame); this.fx.draw(frame);
@@ -952,6 +889,7 @@ export class Scene {
     const n = this.grade.night;
     if (n < .12) return;
     const { frame, world } = this, warm = rgb(255, 204, 120);
+    this.crowd.lights();
     for (const l of this.lamps || []) {
       const sx = Math.floor(frame.OX + (l.x - l.y) * TW), sy = Math.floor(frame.OY + (l.x + l.y) * TH - l.z * ZS);
       for (let dy = 0; dy <= 18; dy++) { const w = dy * .55; for (let dx = -w; dx <= w; dx++) if ((sx + dx + sy + dy) & 1) frame.blend(sx + dx, sy + dy, rgb(255, 216, 150), (1 - dy / 18) * .28 * n); }

@@ -1,12 +1,12 @@
 // The plots. map rows run from the back of the diamond to the front. Digits are height steps.
 // Most towns stand on nearly flat ground. Ubud and Toraja are the steep ones.
-// Player copy for each plot lives in copy/en.js and copy/id.js, under the plot's id. Titles are proper nouns.
+// Player copy for each plot lives in copy/en.js and copy/id.js, under the plot's id.
 const rain = (s) => s.split(' ').map(k => ({ c: 'cerah', b: 'berawan', g: 'gerimis', h: 'hujan', l: 'lebat' })[k]);
 const road = (...tiles) => tiles.map(([x, y]) => ({ type: 'jalan', x, y }));
 
 export const LEVELS = [
   {
-    id: 'kampung', title: 'Kampung Baru', N: 5, biome: 'basin', style: 'joglo', urban: true, seed: 11, roads: true, farLand: 102,
+    id: 'kampung', N: 5, biome: 'basin', style: 'joglo', urban: true, seed: 11, roads: true, farLand: 102,
     map: ['22222', '22221', '22111', '21111', '11111'],
     gate: { x: 2, y: 4, side: 'y' },
     months: 9, weather: rain('c g c h c b g c c'),
@@ -17,7 +17,7 @@ export const LEVELS = [
     wind: [.45, -.15],
   },
   {
-    id: 'rob', title: 'Kota Lama', N: 6, biome: 'coast', style: 'kolonial', urban: true, seed: 23, roads: true, shoreShift: 3, farLand: 102,
+    id: 'rob', N: 6, biome: 'coast', style: 'kolonial', urban: true, seed: 23, roads: true, shoreShift: 3, farLand: 102,
     map: ['333322', '332222', '222222', '222222', '222221', '222211'],
     sea: 1.4, tide: .06, tidePeriod: 18, tideGrow: .035,
     gate: { x: 0, y: 2, side: 'x' },
@@ -29,7 +29,7 @@ export const LEVELS = [
     wind: [.5, .1],
   },
   {
-    id: 'ciliwung', title: 'Ciliwung', N: 6, biome: 'river', style: 'kolonial', urban: true, seed: 31, roads: true, farLand: 102,
+    id: 'ciliwung', N: 6, biome: 'river', style: 'kolonial', urban: true, seed: 31, roads: true, farLand: 102,
     map: ['333333', '333333', '222222', '222222', '222222', '333333'],
     river: { path: [[-3, 2.5], [1.8, 2.5], [3.8, 3.5], [8, 3.5]], width: .95, depth: .3, flow: 9 },
     gate: { x: 0, y: 1, side: 'x' },
@@ -42,7 +42,7 @@ export const LEVELS = [
     wind: [.3, -.3], prewet: 8,
   },
   {
-    id: 'bajo', title: 'Kampung Bajo', N: 6, biome: 'coast', style: 'bajo', seed: 43, shoreShift: -2,
+    id: 'bajo', N: 6, biome: 'coast', style: 'bajo', seed: 43, shoreShift: -2,
     map: ['333221', '322111', '221111', '211110', '111100', '111000'],
     sea: 1.5, tide: .12, tidePeriod: 13,
     months: 12, weather: rain('c c b h h g c c b g c c'),
@@ -53,7 +53,7 @@ export const LEVELS = [
     wind: [.5, .1],
   },
   {
-    id: 'layangan', title: 'Layangan', N: 6, biome: 'coast', style: 'bali', urban: true, seed: 53, roads: true, shoreShift: 1, farLand: 102,
+    id: 'layangan', N: 6, biome: 'coast', style: 'bali', urban: true, seed: 53, roads: true, shoreShift: 1, farLand: 102,
     map: ['333321', '333321', '333321', '333321', '333321', '333321'],
     sea: 1.5,
     gate: { x: 0, y: 3, side: 'x' },
@@ -65,7 +65,7 @@ export const LEVELS = [
     wind: [-.72, .12],
   },
   {
-    id: 'subak', title: 'Ubud', N: 6, biome: 'bali', style: 'bali', seed: 29,
+    id: 'subak', N: 6, biome: 'bali', style: 'bali', seed: 29,
     map: ['554433', '544332', '443322', '433221', '332211', '322110'],
     springs: [{ x: -.45, y: .8, rate: 1.8 }],
     months: 14, weather: rain('g c c c c b g c c c c b g c'),
@@ -76,7 +76,7 @@ export const LEVELS = [
     wind: [.35, -.2], prewet: 20,
   },
   {
-    id: 'lindu', title: 'Lindu', N: 7, biome: 'basin', style: 'joglo', urban: true, seed: 61, roads: true, farLand: 102,
+    id: 'lindu', N: 7, biome: 'basin', style: 'joglo', urban: true, seed: 61, roads: true, farLand: 102,
     map: ['3333222', '3332222', '3322222', '3222222', '2222211', '2222111', '2221111'],
     soil: ['rrr....', 'rr.....', 'r......', '....ss.', '...ssss', '..sssss', '.ssssss'],
     gate: { x: 3, y: 6, side: 'y' },
@@ -89,7 +89,7 @@ export const LEVELS = [
     wind: [.4, -.2],
   },
   {
-    id: 'lereng', title: 'Lereng', N: 7, biome: 'slope', style: 'tongkonan', seed: 71, slides: true, moist: .36, roads: true,
+    id: 'lereng', N: 7, biome: 'slope', style: 'tongkonan', seed: 71, slides: true, moist: .36, roads: true,
     map: ['6655444', '6655444', '5544433', '5544433', '4433322', '4433322', '3322211'],
     gate: { x: 2, y: 6, side: 'y' },
     springs: [{ x: -.5, y: 2.4, rate: .6 }],
@@ -101,7 +101,7 @@ export const LEVELS = [
     wind: [.3, -.3], prewet: 12,
   },
   {
-    id: 'merapi', title: 'Merapi', N: 7, biome: 'volcano', style: 'joglo', urban: true, seed: 83, roads: true, cone: [-6, -6], coneH: 7, coneR: 14,
+    id: 'merapi', N: 7, biome: 'volcano', style: 'joglo', urban: true, seed: 83, roads: true, cone: [-6, -6], coneH: 7, coneR: 14,
     backdrop: [{ x: .5, w: .92, h: .72, tone: 0, name: 'Merapi', plume: 0 }],
     map: ['4443332', '4433322', '4333222', '3332221', '3322211', '3222111', '2221111'],
     springs: [{ x: 1.5, y: -.5, rate: .9 }],
@@ -115,7 +115,7 @@ export const LEVELS = [
     wind: [.55, .25], prewet: 16,
   },
   {
-    id: 'pesisir', title: 'Pesisir', N: 8, biome: 'coast', style: 'aceh', urban: true, seed: 97, roads: true, shoreShift: 2, farLand: 102,
+    id: 'pesisir', N: 8, biome: 'coast', style: 'aceh', urban: true, seed: 97, roads: true, shoreShift: 2, farLand: 102,
     map: ['66665554', '66655544', '66555443', '65554433', '55544332', '44433222', '33322210', '22221000'],
     sea: 1.2, tide: .03, tidePeriod: 14,
     gate: { x: 0, y: 3, side: 'x' },
@@ -128,7 +128,7 @@ export const LEVELS = [
     wind: [-.4, -.4],
   },
   {
-    id: 'nusantara', title: 'Nusantara', N: 8, biome: 'coast', style: 'mix', urban: true, seed: 101, roads: true, shoreShift: 3, farLand: 102,
+    id: 'nusantara', N: 8, biome: 'coast', style: 'mix', urban: true, seed: 101, roads: true, shoreShift: 3, farLand: 102,
     map: ['55554444', '55544444', '55444433', '54444333', '44443332', '33333322', '33332211', '22221100'],
     sea: 1.2, tide: .05, tidePeriod: 16, tideGrow: .012,
     gate: { x: 0, y: 4, side: 'x' },
@@ -142,7 +142,7 @@ export const LEVELS = [
     wind: [.4, -.3],
   },
   {
-    id: 'salatiga', title: 'Salatiga', N: 8, biome: 'salatiga', style: 'kolonial', urban: true, seed: 750, roads: true, farLand: 102, slides: true, moist: .25, soak: .5, avenue: true, mist: true, music: 'salatiga',
+    id: 'salatiga', N: 8, biome: 'salatiga', style: 'kolonial', urban: true, seed: 750, roads: true, farLand: 102, slides: true, moist: .25, soak: .5, avenue: true, mist: true, music: 'salatiga',
     backdrop: [{ x: .24, w: .34, h: .62, tone: 0, name: 'Telomoyo' }, { x: .62, w: .78, h: .9, tone: 1, name: 'Merbabu', plume: .34 }],
     map: ['66665555', '66655555', '55555444', '55554444', '44444433', '44444333', '33333332', '33333222'],
     gate: { x: 0, y: 4, side: 'x' },
@@ -158,7 +158,7 @@ export const LEVELS = [
   },
   // Part 2: traffic. The roads and rails are the puzzle here
   {
-    id: 'solo', part: 2, title: 'Halte', N: 6, biome: 'basin', style: 'joglo', urban: true, seed: 131, roads: true, farLand: 102, transit: true, trucks: true,
+    id: 'solo', part: 2, N: 6, biome: 'basin', style: 'joglo', urban: true, seed: 131, roads: true, farLand: 102, transit: true, trucks: true,
     map: ['222222', '222222', '222222', '222222', '222222', '222222'],
     gate: { x: 0, y: 2, side: 'x' },
     months: 10, weather: rain('c c b g c c h c c b'),
@@ -169,7 +169,7 @@ export const LEVELS = [
     wind: [.4, -.2],
   },
   {
-    id: 'tugu', part: 2, title: 'Stasiun Tugu', N: 7, biome: 'basin', style: 'kolonial', urban: true, seed: 141, roads: true, farLand: 102, transit: true, trucks: true, offPlot: .5,
+    id: 'tugu', part: 2, N: 7, biome: 'basin', style: 'kolonial', urban: true, seed: 141, roads: true, farLand: 102, transit: true, trucks: true, offPlot: .5,
     map: ['3333333', '3333333', '3333333', '3333333', '3333333', '3333333', '3333333'],
     gate: { x: 0, y: 5, side: 'x' },
     rail: [{ path: [[-3, 3], [9, 3]], kind: 'ka', cars: 5, headway: 4.6, seats: 70, power: 1.6 }],
@@ -181,7 +181,7 @@ export const LEVELS = [
     wind: [.35, -.25],
   },
   {
-    id: 'ambarawa', part: 2, title: 'Ambarawa', N: 7, biome: 'slope', style: 'kolonial', seed: 151, roads: true, transit: true,
+    id: 'ambarawa', part: 2, N: 7, biome: 'slope', style: 'kolonial', seed: 151, roads: true, transit: true,
     map: ['6644221', '6644221', '6644221', '6644221', '6644221', '6644221', '6644221'],
     gate: { x: 0, y: 5, side: 'x' },
     rail: [{ path: [[8, 3], [-3, 3]], oneWay: true, kind: 'steam', cars: 3, mass: 2.2, power: 1.8, vmax: 1.25, entry: 1.2, first: .1, headway: 99, freight: 8, seats: 0, deliverAt: 3 }],
@@ -193,7 +193,7 @@ export const LEVELS = [
     wind: [.3, -.3],
   },
   {
-    id: 'manggarai', part: 2, title: 'Manggarai', N: 8, biome: 'river', style: 'mix', urban: true, seed: 161, roads: true, farLand: 102, transit: true, trucks: true, offPlot: .55,
+    id: 'manggarai', part: 2, N: 8, biome: 'river', style: 'mix', urban: true, seed: 161, roads: true, farLand: 102, transit: true, trucks: true, offPlot: .55,
     map: ['33333333', '33333333', '33333333', '33333333', '33333333', '22222222', '22222222', '22222222'],
     river: { path: [[-3, 6.5], [10, 6.5]], width: .9, depth: .3, flow: 10 },
     gate: { x: 0, y: 4, side: 'x' },

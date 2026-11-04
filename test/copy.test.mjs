@@ -1,44 +1,50 @@
-// Both languages must hold the same keys and the same placeholders. Every key the sim emits must exist.
+// All languages must hold the same keys and the same placeholders. Every key the sim emits must exist.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import en from '../public/js/copy/en.js';
 import id from '../public/js/copy/id.js';
+import zh from '../public/js/copy/zh.js';
 import { preferredLang } from '../public/js/i18n.js';
 import { CATALOG, WEATHER } from '../public/js/sim/catalog.js';
 import { LEVELS } from '../public/js/sim/levels.js';
 
 const flat = (o, pre = '') => Object.entries(o).flatMap(([k, v]) => (v && typeof v === 'object' ? flat(v, pre + k + '.') : [[pre + k, v]]));
-const EN = new Map(flat(en)), ID = new Map(flat(id));
+const EN = new Map(flat(en)), ID = new Map(flat(id)), ZH = new Map(flat(zh));
 const render = v => (typeof v === 'function' ? [v({ n: 1 }), v({ n: 2 })].join(' ') : v);
 const holes = v => [...new Set(typeof v === 'function' ? [] : (v.match(/\{\w+\}/g) || []))].sort();
-const sentences = s => s.split(/(?<=[.!?])\s+/).map(x => x.trim()).filter(Boolean);
+const sentences = s => s.split(/(?<=[.!?。！？])\s*/).map(x => x.trim()).filter(Boolean);
 const words = s => s.replace(/\{\w+\}/g, 'x').split(/\s+/).filter(Boolean).length;
 
-test('a first visit follows the higher of English and Indonesian', () => {
+test('a first visit follows the highest of the game languages', () => {
   assert.equal(preferredLang(['en-US', 'en', 'zh-CN', 'id', 'en-AU']), 'en');
   assert.equal(preferredLang(['id-ID', 'en-US']), 'id');
   assert.equal(preferredLang(['id']), 'id');
-  assert.equal(preferredLang(['zh-CN', 'id', 'en']), 'id');
+  assert.equal(preferredLang(['zh-CN', 'id', 'en']), 'zh');
+  assert.equal(preferredLang(['zh-TW', 'en']), 'zh');
+  assert.equal(preferredLang(['en-US', 'zh-CN']), 'en');
+  assert.equal(preferredLang(['fr', 'id-ID', 'zh']), 'id');
   assert.equal(preferredLang(['fr-FR', 'de']), 'en');
   assert.equal(preferredLang(['en-ID']), 'en');
   assert.equal(preferredLang([]), 'en');
 });
-test('both languages hold the same keys', () => {
-  assert.deepEqual([...EN.keys()].filter(k => !ID.has(k)), []);
-  assert.deepEqual([...ID.keys()].filter(k => !EN.has(k)), []);
+test('all languages hold the same keys', () => {
+  for (const other of [ID, ZH]) {
+    assert.deepEqual([...EN.keys()].filter(k => !other.has(k)), []);
+    assert.deepEqual([...other.keys()].filter(k => !EN.has(k)), []);
+  }
 });
-test('both languages use the same placeholders', () => {
-  for (const [k, v] of EN) assert.deepEqual(holes(ID.get(k)), holes(v), k);
+test('all languages use the same placeholders', () => {
+  for (const other of [ID, ZH]) for (const [k, v] of EN) assert.deepEqual(holes(other.get(k)), holes(v), k);
 });
 test('no Indonesian line is a copy of the English', () => {
   const same = [...EN].filter(([k, v]) => typeof v === 'string' && v === ID.get(k) && v.split(' ').length > 2).map(([k]) => k);
   assert.deepEqual(same, []);
 });
 test('every card and plot has copy', () => {
-  for (const k of Object.keys(CATALOG)) assert.equal(typeof en.cards[k], 'string', k);
+  for (const k of Object.keys(CATALOG)) { assert.equal(typeof en.cards[k], 'string', k); assert.equal(typeof en.names[k], 'string', k); }
   for (const k of Object.keys(WEATHER)) assert.equal(typeof en.weather[k], 'string', k);
-  for (const L of LEVELS) for (const f of ['place', 'goal', 'brief']) assert.equal(typeof en.levels[L.id][f], 'string', L.id + f);
+  for (const L of LEVELS) for (const f of ['title', 'place', 'goal', 'brief']) assert.equal(typeof en.levels[L.id][f], 'string', L.id + f);
   for (const L of LEVELS) for (const p of L.pledges) assert.ok(en.pledge[p.kind], p.kind);
 });
 test('every key the sim and the game use exists', () => {
@@ -49,6 +55,17 @@ test('every key the sim and the game use exists', () => {
 });
 test('every sentence has 20 words or fewer', () => {
   for (const [k, v] of [...EN, ...ID]) for (const s of sentences(render(v))) assert.ok(words(s) <= 20, `${k}: ${s}`);
+  for (const [k, v] of ZH) for (const s of sentences(render(v))) assert.ok(s.length <= 42, `${k}: ${s}`);
+});
+test('the Chinese is Chinese all the way through', () => {
+  for (const [k, v] of ZH) {
+    const text = render(v).replace(/\{\w+\}/g, '');
+    assert.doesNotMatch(text, /[A-Za-z]{2,}/, k);
+    assert.doesNotMatch(text, /[\u4e00-\u9fff][.,!?;:]/, k);
+  }
+});
+test('Bu Lurah has a subtitle in every language', () => {
+  for (const l of JSON.parse(readFileSync('public/audio/voice/lines.json', 'utf8'))) for (const f of ['en_text', 'id_text', 'zh_text']) assert.ok(l[f], l.id + f);
 });
 test('the English avoids the banned forms', () => {
   for (const [k, v] of EN) assert.doesNotMatch(render(v), /\bunless\b|rather than|instead of|\b\w+n't\b/i, k);
