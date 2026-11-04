@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import en from '../public/js/copy/en.js';
 import id from '../public/js/copy/id.js';
+import { preferredLang } from '../public/js/i18n.js';
 import { CATALOG, WEATHER } from '../public/js/sim/catalog.js';
 import { LEVELS } from '../public/js/sim/levels.js';
 
@@ -14,6 +15,15 @@ const holes = v => [...new Set(typeof v === 'function' ? [] : (v.match(/\{\w+\}/
 const sentences = s => s.split(/(?<=[.!?])\s+/).map(x => x.trim()).filter(Boolean);
 const words = s => s.replace(/\{\w+\}/g, 'x').split(/\s+/).filter(Boolean).length;
 
+test('a first visit follows the higher of English and Indonesian', () => {
+  assert.equal(preferredLang(['en-US', 'en', 'zh-CN', 'id', 'en-AU']), 'en');
+  assert.equal(preferredLang(['id-ID', 'en-US']), 'id');
+  assert.equal(preferredLang(['id']), 'id');
+  assert.equal(preferredLang(['zh-CN', 'id', 'en']), 'id');
+  assert.equal(preferredLang(['fr-FR', 'de']), 'en');
+  assert.equal(preferredLang(['en-ID']), 'en');
+  assert.equal(preferredLang([]), 'en');
+});
 test('both languages hold the same keys', () => {
   assert.deepEqual([...EN.keys()].filter(k => !ID.has(k)), []);
   assert.deepEqual([...ID.keys()].filter(k => !EN.has(k)), []);
