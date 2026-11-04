@@ -1,5 +1,6 @@
 // Audio: a small gamelan synth for play, sample playback for effects, ambience and the main theme.
 // Melodies are original. The tuning is slendro and pelog, as cents above the tonic.
+import { VoiceQueue } from './voice-queue.js';
 let ctx = null, master = null, musicBus = null, sfxBus = null, ambBus = null, voiceBus = null;
 let muted = false, manifest = null;
 const buffers = new Map(), loading = new Map();
@@ -200,18 +201,20 @@ export async function playCue(name) {
 /* ---------- voice ---------- */
 let voiceLines = null;
 export async function loadLines() { if (voiceLines) return voiceLines; try { const r = await fetch('audio/voice/lines.json'); if (r.ok) voiceLines = await r.json(); } catch { /* it can retry */ } return voiceLines || []; }
-export async function speak(id, onLine) {
-  const lines = await loadLines(), line = lines.find(l => l.id === id);
-  if (!line) return;
-  onLine && onLine(line);
-  if (!ctx) return;
-  const buf = await load(`audio/voice/${id}.mp3`);
-  if (!buf) return;
-  duck(.35);
-  const s = ctx.createBufferSource(); s.buffer = buf; s.connect(voiceBus); s.start();
-  s.onended = () => duck(1);
-  return buf.duration;
+// One line starts here. With no sound available, the subtitle still gets its time on screen
+async function startLine(id) {
+  const lines = await loadLines(), line = lines && lines.find(l => l.id === id);
+  if (!line) return null;
+  const buf = ctx ? await load(`audio/voice/${id}.mp3`) : null;
+  const ms = buf ? buf.duration * 1000 : 3200;
+  let finish, source = null;
+  const ended = new Promise(res => { finish = res; }), guard = setTimeout(() => finish(), ms + 900); // a suspended context never reports the end
+  if (buf) { source = ctx.createBufferSource(); source.buffer = buf; source.connect(voiceBus); source.onended = () => finish(); source.start(); }
+  return { line, ms, ended: ended.then(() => clearTimeout(guard)), stop() { if (source) { source.onended = null; try { source.stop(); } catch { /* it has ended */ } } finish(); } };
 }
+const voice = new VoiceQueue({ play: startLine, onDuck: on => duck(on ? .35 : 1) });
+export const speak = (id, onLine, opts) => voice.say(id, onLine, opts);
+export const cancelVoice = () => voice.cancel();
 function duck(v) { if (musicBus) musicBus.gain.setTargetAtTime(.9 * v, ctx.currentTime, .15); if (ambBus) ambBus.gain.setTargetAtTime(.6 * (v < 1 ? .6 : 1), ctx.currentTime, .15); }
 
 /* ---------- the gamelan synth ---------- */

@@ -6,8 +6,7 @@ import { CATALOG } from './catalog.js';
 onmessage = (e) => {
   const snap = e.data, level = levelById(snap.levelId), w = new World({ ...level, start: [] });
   w.restore(snap);
-  w.buildings.forEach(b => { b.done = true; b.prog = 1; b.monthsLeft = 0; });
-  w.refreshPhysicsFields();
+  const rubble = new Set(w.buildings.filter(b => b.ruin).map(b => b.id)); // what has already fallen cannot fall this month
   const N = w.N, depth = new Float32Array(N * N), steps = Math.floor(MONTH_SECONDS * 60);
   const before = w.heights.slice();
   w.startMonth();
@@ -22,8 +21,7 @@ onmessage = (e) => {
   const alerts = [];
   for (const b of w.buildings) {
     const cat = CATALOG[b.type];
-    if (b.ruin) alerts.push({ x: b.x, y: b.y, kind: 'lost' });
-    else if (cat.crop && b.wet / MONTH_SECONDS < .5) alerts.push({ x: b.x, y: b.y, kind: 'dry' });
+    if (b.ruin) { if (!rubble.has(b.id)) alerts.push({ x: b.x, y: b.y, kind: 'lost' }); } else if (cat.crop && b.wet / MONTH_SECONDS < .5) alerts.push({ x: b.x, y: b.y, kind: 'dry' });
     else if (cat.crop && b.flooded > MONTH_SECONDS * .5) alerts.push({ x: b.x, y: b.y, kind: 'wet' });
     else if (b.soakedNow) alerts.push({ x: b.x, y: b.y, kind: 'wet' });
   }

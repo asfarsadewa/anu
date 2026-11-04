@@ -88,7 +88,8 @@ export class Scene {
   setInsets(top, bottom) { this.insets = { top, bottom }; }
   setWorld(world) {
     this.world = world; this.ashDim = 0; this.cars = []; this.lamps = []; this.vis.clear(); this.crowd.reset(); this.ropes.clear(); this.floats = []; this.flags = [];
-    this.fx.n = 0; this.sticks.list = []; this.debris.list = []; this.overlay.forecast = null; this.islandBake = null;
+    this.fx.n = 0; this.sticks.list = []; this.debris.list = []; this.islandBake = null;
+    this.overlay = { tile: null, ghost: null, valid: true, showGrid: false, forecast: null, chips: null };
     this.layout(true);
     this.buildNature();
   }

@@ -17,8 +17,11 @@ A mobile-first Indonesian town builder. Physics runs between monthly turns. DESI
 ## Roads and steps
 - `writeTile` in `sim/world.js` shapes a road where the ground changes by one step. Two roads share the climb. A road running straight at empty ground climbs to meet it. A building that opens onto the road gets stone steps. A wall beside a road stays a wall. `test/roads.test.mjs` sweeps every one-step edge on every plot.
 
+## State that lasts
+- `CARRIED` and `CARRIED_TRANSIT` in `sim/world.js` list what passes from one month to the next. The save and the forecast both use them. Add new lasting state there. `test/sim.test.mjs` checks that a resumed game matches a game that never stopped, and that the forecast matches the real month.
+
 ## Tests
-- `npm test` runs `tools/smoke.mjs` and `tools/autoplay.mjs`. After a change to `sim/` or to a plot, check that each good plan wins and each careless plan loses. Merapi and other plots with a spare margin may need retuning after any fluid change.
+- `npm test` runs the unit tests, `tools/smoke.mjs` and `tools/autoplay.mjs`. It fails if a good plan does not win, a good plan has a rejected placement, a careless plan wins, or a fluid value is not finite. Merapi and other plots with a spare margin may need retuning after any fluid change.
 - Plans obey the same limits as a player. Place a road before the building that needs it.
 
 ## Architecture rules
@@ -46,5 +49,6 @@ A mobile-first Indonesian town builder. Physics runs between monthly turns. DESI
 - Place names and Indonesian building names are proper nouns.
 
 ## Audio
+- `voice-queue.js` gives Bu Lurah one channel. Lines wait their turn, warnings and end lines replace what is playing, and a plot change silences her.
 - Long music streams from a pool of audio elements made during the first tap, which phones require. Effects and loops are decoded, and `prepareLevel` frees what the last plot used. `G.audio.audioStats()` shows what is in memory.
 - `tools/audio/` regenerates assets. Raw takes live in `.audio-src/`, which git ignores. `PROMPTS.md` logs every prompt. No person has listened to the audio yet. `tools/audio/PROMPTS.md` lists what needs a human ear.

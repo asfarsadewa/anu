@@ -84,6 +84,7 @@ function showCard() {
 /* ---------- the map ---------- */
 function showMap() {
   G.screen = 'map';
+  silence();
   A.playTheme();
   $('title').hidden = true; $('hud').hidden = true; $('tray').hidden = true; $('runbar').hidden = true;
   $('map').hidden = false;
@@ -129,7 +130,8 @@ function introLevel(L) {
   });
 }
 function startLevel(L, save) {
-  G.screen = 'play'; G.level = L; G.sel = null; G.placed = []; G.ended = false; G.speed = 1; G.fcOn = false; G.seenBarks.clear();
+  G.screen = 'play'; G.level = L; G.placed = []; G.ended = false; G.speed = 1; G.fcOn = false; G.seenBarks.clear();
+  selectCardOff(); P.active = false; silence();
   const w = new World(L);
   if (save) w.load(save);
   G.world = w;
@@ -222,13 +224,15 @@ function toast(text, kind = '') {
   setTimeout(() => d.remove(), kind === 'log' ? 5200 : 3400);
 }
 let sayTimer = 0;
+const URGENT_LINE = /_warning$|_win$|^level_lost$/; // danger and the end of a plot do not wait their turn
+function silence() { A.cancelVoice(); clearTimeout(sayTimer); $('say').hidden = true; }
 function bark(id) {
   if (G.seenBarks.has(id)) return;
   G.seenBarks.add(id);
-  A.speak(id, line => {
+  A.speak(id, (line, ms) => {
     $('say-text').textContent = subtitle(line); $('say').style.top = $('hud').offsetHeight + 'px'; $('say').hidden = false;
-    clearTimeout(sayTimer); sayTimer = setTimeout(() => { $('say').hidden = true; }, 4600);
-  });
+    clearTimeout(sayTimer); sayTimer = setTimeout(() => { $('say').hidden = true; }, Math.max(2600, ms + 500));
+  }, { urgent: URGENT_LINE.test(id) });
 }
 // The soundscape follows the town: what stands on the plot, the hour, the weather and the water
 function ambience() {
@@ -297,7 +301,7 @@ function nextMonth() {
 }
 function selectCardOff() {
   G.sel = null; document.querySelectorAll('.card').forEach(c => c.setAttribute('aria-selected', false));
-  const o = scene.overlay; o.showGrid = false; o.tile = null; o.ghost = null;
+  const o = scene.overlay; o.showGrid = false; o.tile = null; o.ghost = null; o.chips = null; o.isValid = null;
 }
 function monthEnded(log) {
   const w = G.world;
@@ -324,8 +328,8 @@ function endLevel() {
     G.dissolveTo = 1; scene.setInsets(40, 40);
     if (!L.music) { A.stopMood(); A.playCue('win'); } A.sfx('cheer');
     bark(`l${LEVELS.indexOf(L) + 1}_win`);
-    setTimeout(() => showResult(true), 3200);
-  } else { A.stopMood(); bark('level_lost'); setTimeout(() => showResult(false), 900); }
+    setTimeout(() => { if (G.world === w) showResult(true); }, 3200);
+  } else { A.stopMood(); bark('level_lost'); setTimeout(() => { if (G.world === w) showResult(false); }, 900); }
 }
 function showResult(won) {
   const w = G.world, L = G.level, k = LEVELS.indexOf(L), next = LEVELS[k + 1];

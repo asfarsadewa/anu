@@ -9,6 +9,10 @@ const GR = 576, MGR = 120; // gravity for water and mud, in grid units
 const BUND = .08, PADDY = -.03, CANAL = -.09;
 export const M = { GRASS: 0, SOIL: 1, SAND: 2, ROCK: 3, FERTILE: 4, BUND: 5, PADDY: 6, CANAL: 7, PATH: 8, LEVEE: 9, SEABED: 10, RUBBLE: 11, SABO: 12, FIELD: 13, RIVERBED: 14, ROAD: 15, PARK: 16, URBAN: 17, RAIL: 18, STEPS: 19 };
 
+// What a month hands to the next one. The save and the forecast both use these lists, so a new field cannot reach only one of them
+const CARRIED = ['month', 'time', 'people', 'rice', 'labour', 'nextId', 'lost', 'leftHungry', 'destroyed', 'harvested', 'harvestAfter', 'afterEvent', 'slides', 'slideHits', 'slideCool', 'peakPeople', 'quake', 'plume', 'surge', 'waveEv', 'evac', 'evacSafe', 'evacTotal', 'anyMud', 'tide', 'wave', 'kitesUp', 'roadTick', 'tickSlope', 'terrainChanged'];
+const CARRIED_TRANSIT = ['trips', 'tripsBest', 'tripsLast', 'macet', 'macetLast', 'macetNow', 'freight', 'failed', 'seed'];
+
 export class World {
   constructor(level) {
     this.level = level;
@@ -253,7 +257,7 @@ export class World {
     let old = null;
     if (cat.needs || type === 'layang') { old = this.buildingAt(x, y); if (old) this.buildings = this.buildings.filter(b => b !== old); }
     const b = { id: this.nextId++, type, x, y, bridge: type === 'jalan' && !!this.level.river && this.onRiver(x, y), ground: this.tileHeight(x, y) * STEP, done: !!opts.instant, prog: opts.instant ? 1 : 0, age: opts.instant ? 99 : 0, months: cat.months || 1, monthsLeft: opts.instant ? 0 : cat.months || 1,
-      style: opts.style || this.level.style || 'joglo', variant: hash(x * 7 + 3, y * 11) > .5 ? 1 : 0, growth: opts.instant && cat.crop ? 1 : 0, wet: 0, flooded: 0, soaked: 0, drift: 0, driftV: 0, ashLoad: 0, angle: 0, kite: 0, replaced: !!old, bornMonth: this.month, residents: 0, tilt: 0 };
+      style: opts.style || this.level.style || 'joglo', variant: hash(x * 7 + 3, y * 11) > .5 ? 1 : 0, growth: opts.instant && cat.crop ? 1 : 0, wet: 0, flooded: 0, soaked: 0, drift: 0, driftV: 0, ashLoad: 0, angle: 0, kite: 0, replaced: !!old, prev: old || undefined, bornMonth: this.month, residents: 0, tilt: 0 };
     if (cat.nearRail || cat.onRail) b.facing = this.railFacing(x, y, foot);
     this.buildings.push(b);
     for (let a = 0; a < foot; a++) for (let c = 0; c < foot; c++) this.tiles[(y + c) * this.N + x + a] = b.id;
@@ -284,8 +288,15 @@ export class World {
     for (let a = 0; a < foot; a++) for (let c = 0; c < foot; c++) this.tiles[(b.y + c) * this.N + b.x + a] = -1;
     if (refund) this.labour += cat.cost;
     if (cat.home) this.people = Math.min(this.people, this.capacity());
-    this.touch(b.x, b.y, foot);
     this.fx.push({ kind: 'removed', b });
+    // undoing an upgrade brings back what it replaced, as it was. Only the upgrade is refunded
+    if (refund && b.prev) {
+      const p = b.prev, pf = CATALOG[p.type].foot || 1;
+      this.buildings.push(p);
+      for (let a = 0; a < pf; a++) for (let c = 0; c < pf; c++) this.tiles[(p.y + c) * this.N + p.x + a] = p.id;
+      this.fx.push({ kind: 'placed', b: p });
+    }
+    this.touch(b.x, b.y, foot);
   }
   undoable(b) { return !b.done && b.bornMonth === this.month && !this.running && !b.replaced; }
 
@@ -387,7 +398,7 @@ export class World {
     this.running = true; this.t = 0; this.weather = this.weatherNow();
     this.pending = this.eventsNow().map(e => ({ ...e, fired: false }));
     this.warned = false;
-    for (const b of this.buildings) { b.wet = 0; b.flooded = 0; b.soakedNow = false; }
+    for (const b of this.buildings) { b.wet = 0; b.flooded = 0; b.soakedNow = false; delete b.prev; }
     if (this.transit) this.transit.startMonth();
     this.log = [];
     this.fx.push({ kind: 'month', month: this.month });
@@ -528,6 +539,7 @@ export class World {
     if (this.plume && this.plume.lahar && this.time - (this.plume.until - 12) < this.plume.ldur) {
       const c = this.idx(this.plume.lx, this.plume.ly);
       for (let p = -3; p <= 3; p++) for (let q = -3; q <= 3; q++) m[c + q * G + p] += this.plume.lahar * dt / 49;
+      this.anyMud = true;
     }
     if (this.plume) this.fallAsh();
     // rain, evaporation, soaking
@@ -541,7 +553,7 @@ export class World {
         w[i] = d < 0 ? 0 : d;
       } else if (sat[i] > 0) sat[i] -= .0016 * dt;
       if (ash[i] > 0 && rain > 0) { // rain turns ash into mud
-        const a = Math.min(ash[i], rain * dt * .6); ash[i] -= a; m[i] += a * .12;
+        const a = Math.min(ash[i], rain * dt * .6); ash[i] -= a; m[i] += a * .12; this.anyMud = true;
       }
     }
     // mud
@@ -837,6 +849,7 @@ export class World {
     const N = this.N;
     this.heights[y * N + x] -= 1;
     this.forCells(x, y, 1, (i) => { this.ground0[i] -= STEP; this.mat0[i] = M.SOIL; this.m[i] += STEP * .55; });
+    this.anyMud = true;
     for (const [a, c] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) { const ax = x + a, ay = y + c; if (ax >= 0 && ay >= 0 && ax < N && ay < N) this.moist[ay * N + ax] = .3; }
     const b = this.buildingAt(x, y);
     if (b) this.destroy(b, 'landslide');
@@ -912,7 +925,7 @@ export class World {
       if (b.type === 'bakau') food += CATALOG.bakau.food;
       if (b.type === 'dermaga' && this.boatFloats(b)) food += CATALOG.dermaga.food;
       if (CATALOG[b.type].market) {
-        if (this.level.trucks && b.delivered === false) { /* the truck stayed in the queue */ } else if (!b.allTicks || b.openTicks / b.allTicks >= .5) market += CATALOG[b.type].market; else log.push(['log.roadCut']);
+        if (this.level.trucks && CATALOG[b.type].road && b.delivered !== true) { /* no truck reached it this month */ } else if (!b.allTicks || b.openTicks / b.allTicks >= .5) market += CATALOG[b.type].market; else log.push(['log.roadCut']);
         b.openTicks = 0; b.allTicks = 0;
       }
     }
@@ -1022,29 +1035,43 @@ export class World {
   snapshot() {
     const { base, gr, ground0, mat, mat0, w, m, ash, qx, qy, mx, my, moist, tiles, heights, soil, infil, fric, mudstop, sat } = this;
     return {
-      levelId: this.level.id, month: this.month, time: this.time,
+      levelId: this.level.id,
       arrays: { base, gr, ground0, mat, mat0, w, m, ash, qx, qy, mx, my, moist, tiles, heights, soil, infil, fric, mudstop, sat },
-      buildings: this.buildings.map(b => ({ ...b, done: b.done || b.prog > .0 })),
-      people: this.people, rice: this.rice, nextId: this.nextId,
+      buildings: this.buildings.map(b => ({ ...b })),
+      carried: this.carried(),
     };
   }
   restore(s) {
     for (const k in s.arrays) this[k].set(s.arrays[k]);
-    this.month = s.month; this.time = s.time; this.buildings = s.buildings; this.people = s.people; this.rice = s.rice; this.nextId = s.nextId;
+    this.buildings = s.buildings;
+    this.uncarry(s.carried);
     this.refreshPhysicsFields();
   }
-  // Save and load: everything needed to resume after the month ends
+  // What lasts from one month to the next, besides the big arrays: what the goal has counted, what is still happening, and what the traffic has done
+  carried() {
+    const c = { ripeLevels: [...(this.ripeLevels || [])], evacDist: this.evacDist ? Array.from(this.evacDist) : null };
+    for (const k of CARRIED) c[k] = this[k];
+    if (this.transit) { c.transit = {}; for (const k of CARRIED_TRANSIT) c.transit[k] = this.transit[k]; }
+    return c;
+  }
+  uncarry(c) {
+    for (const k of CARRIED) if (c[k] !== undefined) this[k] = c[k];
+    if (c.ripeLevels) this.ripeLevels = new Set(c.ripeLevels);
+    if (c.evacDist) this.evacDist = Int16Array.from(c.evacDist);
+    if (c.transit && this.transit) for (const k of CARRIED_TRANSIT) if (c.transit[k] !== undefined) this.transit[k] = c.transit[k];
+  }
+  // Save and load: everything needed to resume after the month ends. A save from an older game has fewer fields, and the rest keep their starting values
   save() {
     const toB64 = a => { let s = ''; const u = new Uint8Array(a.buffer); for (let i = 0; i < u.length; i += 8192) s += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return btoa(s); };
-    const { ground0, base, gr, mat0, mat, w, m, ash, moist, tiles, heights } = this;
-    const arrays = {};
-    for (const [k, v] of Object.entries({ ground0, base, mat0, mat, w, m, ash, moist, tiles, heights })) arrays[k] = toB64(v);
-    return { id: this.level.id, arrays, buildings: this.buildings, month: this.month, time: this.time, people: this.people, rice: this.rice, labour: this.labour, nextId: this.nextId, lost: this.lost, leftHungry: this.leftHungry, destroyed: this.destroyed, harvested: this.harvested, harvestAfter: this.harvestAfter, afterEvent: !!this.afterEvent, slides: this.slides || 0 };
+    const { ground0, base, mat0, mat, w, m, ash, qx, qy, mx, my, sat, moist, tiles, heights, soil } = this, arrays = {};
+    for (const [k, v] of Object.entries({ ground0, base, mat0, mat, w, m, ash, qx, qy, mx, my, sat, moist, tiles, heights, soil })) arrays[k] = toB64(v);
+    return { id: this.level.id, arrays, buildings: this.buildings, ...this.carried() };
   }
   load(s) {
     const un = (b64, arr) => { const b = atob(b64), u = new Uint8Array(arr.buffer); for (let i = 0; i < u.length; i++) u[i] = b.charCodeAt(i); };
     for (const k in s.arrays) un(s.arrays[k], this[k]);
-    for (const k of ['buildings', 'month', 'time', 'people', 'rice', 'labour', 'nextId', 'lost', 'leftHungry', 'destroyed', 'harvested', 'harvestAfter', 'afterEvent', 'slides']) this[k] = s[k];
+    this.buildings = s.buildings;
+    this.uncarry(s);
     this.refreshPhysicsFields();
     this.dirtyAll = true;
   }
