@@ -1,0 +1,897 @@
+{
+  "version": 1,
+  "voiceLines": "audio/voice/lines.json",
+  "files": [
+    {
+      "id": "theme",
+      "path": "audio/theme.mp3",
+      "kind": "music",
+      "duration": 99.888,
+      "loop": false,
+      "bytes": 799554,
+      "lufs": -18
+    },
+    {
+      "id": "win",
+      "path": "audio/win.mp3",
+      "kind": "music",
+      "duration": 7.351,
+      "loop": false,
+      "bytes": 44538,
+      "lufs": -18.3
+    },
+    {
+      "id": "salatiga",
+      "path": "audio/salatiga.mp3",
+      "kind": "music",
+      "duration": 139.96,
+      "loop": true,
+      "bytes": 1680195,
+      "lufs": -18
+    },
+    {
+      "id": "play_plan",
+      "path": "audio/play_plan.mp3",
+      "kind": "music",
+      "duration": 79.031,
+      "loop": true,
+      "bytes": 553690,
+      "lufs": -22
+    },
+    {
+      "id": "play_run",
+      "path": "audio/play_run.mp3",
+      "kind": "music",
+      "duration": 75.662,
+      "loop": true,
+      "bytes": 530102,
+      "lufs": -22
+    },
+    {
+      "id": "play_danger",
+      "path": "audio/play_danger.mp3",
+      "kind": "music",
+      "duration": 63.633,
+      "loop": true,
+      "bytes": 445804,
+      "lufs": -22
+    },
+    {
+      "id": "hammer",
+      "path": "audio/sfx/hammer.mp3",
+      "kind": "sfx",
+      "duration": 0.6,
+      "loop": false,
+      "bytes": 2784,
+      "lufs": -22.7
+    },
+    {
+      "id": "saw",
+      "path": "audio/sfx/saw.mp3",
+      "kind": "sfx",
+      "duration": 1,
+      "loop": false,
+      "bytes": 4416,
+      "lufs": -20.3
+    },
+    {
+      "id": "lash",
+      "path": "audio/sfx/lash.mp3",
+      "kind": "sfx",
+      "duration": 1.2,
+      "loop": false,
+      "bytes": 5184,
+      "lufs": -23
+    },
+    {
+      "id": "brick",
+      "path": "audio/sfx/brick.mp3",
+      "kind": "sfx",
+      "duration": 0.82,
+      "loop": false,
+      "bytes": 3744,
+      "lufs": -27.3
+    },
+    {
+      "id": "thud",
+      "path": "audio/sfx/thud.mp3",
+      "kind": "sfx",
+      "duration": 0.356,
+      "loop": false,
+      "bytes": 1824,
+      "lufs": -23
+    },
+    {
+      "id": "tile",
+      "path": "audio/sfx/tile.mp3",
+      "kind": "sfx",
+      "duration": 1,
+      "loop": false,
+      "bytes": 4416,
+      "lufs": -21.1
+    },
+    {
+      "id": "dig",
+      "path": "audio/sfx/dig.mp3",
+      "kind": "sfx",
+      "duration": 0.253,
+      "loop": false,
+      "bytes": 1440,
+      "lufs": -23
+    },
+    {
+      "id": "splash",
+      "path": "audio/sfx/splash.mp3",
+      "kind": "sfx",
+      "duration": 0.8,
+      "loop": false,
+      "bytes": 3648,
+      "lufs": -23.4
+    },
+    {
+      "id": "creak",
+      "path": "audio/sfx/creak.mp3",
+      "kind": "sfx",
+      "duration": 1.82,
+      "loop": false,
+      "bytes": 7680,
+      "lufs": -26
+    },
+    {
+      "id": "collapse",
+      "path": "audio/sfx/collapse.mp3",
+      "kind": "sfx",
+      "duration": 2.01,
+      "loop": false,
+      "bytes": 8448,
+      "lufs": -13.9
+    },
+    {
+      "id": "kentongan",
+      "path": "audio/sfx/kentongan.mp3",
+      "kind": "sfx",
+      "duration": 2.1,
+      "loop": false,
+      "bytes": 8832,
+      "lufs": -28.8
+    },
+    {
+      "id": "rumble",
+      "path": "audio/sfx/rumble.mp3",
+      "kind": "sfx",
+      "duration": 2.98,
+      "loop": false,
+      "bytes": 12384,
+      "lufs": -19.6
+    },
+    {
+      "id": "thunder",
+      "path": "audio/sfx/thunder.mp3",
+      "kind": "sfx",
+      "duration": 2.68,
+      "loop": false,
+      "bytes": 11136,
+      "lufs": -20.6
+    },
+    {
+      "id": "eruption",
+      "path": "audio/sfx/eruption.mp3",
+      "kind": "sfx",
+      "duration": 4,
+      "loop": false,
+      "bytes": 16416,
+      "lufs": -15.5
+    },
+    {
+      "id": "ui_tap",
+      "path": "audio/sfx/ui_tap.mp3",
+      "kind": "sfx",
+      "duration": 0.12,
+      "loop": false,
+      "bytes": 864,
+      "lufs": -23.4
+    },
+    {
+      "id": "ui_place",
+      "path": "audio/sfx/ui_place.mp3",
+      "kind": "sfx",
+      "duration": 0.194,
+      "loop": false,
+      "bytes": 1248,
+      "lufs": -28.2
+    },
+    {
+      "id": "ui_bad",
+      "path": "audio/sfx/ui_bad.mp3",
+      "kind": "sfx",
+      "duration": 0.25,
+      "loop": false,
+      "bytes": 1440,
+      "lufs": -20.4
+    },
+    {
+      "id": "harvest",
+      "path": "audio/sfx/harvest.mp3",
+      "kind": "sfx",
+      "duration": 1.1,
+      "loop": false,
+      "bytes": 4800,
+      "lufs": -25
+    },
+    {
+      "id": "cheer",
+      "path": "audio/sfx/cheer.mp3",
+      "kind": "sfx",
+      "duration": 1.713,
+      "loop": false,
+      "bytes": 7296,
+      "lufs": -14.5
+    },
+    {
+      "id": "pump",
+      "path": "audio/sfx/pump.mp3",
+      "kind": "sfx",
+      "duration": 2,
+      "loop": false,
+      "bytes": 8448,
+      "lufs": -14.9
+    },
+    {
+      "id": "moped",
+      "path": "audio/sfx/moped.mp3",
+      "kind": "sfx",
+      "duration": 2,
+      "loop": false,
+      "bytes": 8448,
+      "lufs": -18.3
+    },
+    {
+      "id": "horn",
+      "path": "audio/sfx/horn.mp3",
+      "kind": "sfx",
+      "duration": 1.4,
+      "loop": false,
+      "bytes": 6048,
+      "lufs": -13
+    },
+    {
+      "id": "bakso",
+      "path": "audio/sfx/bakso.mp3",
+      "kind": "sfx",
+      "duration": 1.8,
+      "loop": false,
+      "bytes": 7584,
+      "lufs": -23.2
+    },
+    {
+      "id": "rooster",
+      "path": "audio/sfx/rooster.mp3",
+      "kind": "sfx",
+      "duration": 2.019,
+      "loop": false,
+      "bytes": 8544,
+      "lufs": -11.9
+    },
+    {
+      "id": "schoolbell",
+      "path": "audio/sfx/schoolbell.mp3",
+      "kind": "sfx",
+      "duration": 2.714,
+      "loop": false,
+      "bytes": 11328,
+      "lufs": -18.7
+    },
+    {
+      "id": "bedug",
+      "path": "audio/sfx/bedug.mp3",
+      "kind": "sfx",
+      "duration": 3.48,
+      "loop": false,
+      "bytes": 14304,
+      "lufs": -27.4
+    },
+    {
+      "id": "churchbell",
+      "path": "audio/sfx/churchbell.mp3",
+      "kind": "sfx",
+      "duration": 3.48,
+      "loop": false,
+      "bytes": 14304,
+      "lufs": -15.4
+    },
+    {
+      "id": "templegong",
+      "path": "audio/sfx/templegong.mp3",
+      "kind": "sfx",
+      "duration": 2.498,
+      "loop": false,
+      "bytes": 10464,
+      "lufs": -23.6
+    },
+    {
+      "id": "boat",
+      "path": "audio/sfx/boat.mp3",
+      "kind": "sfx",
+      "duration": 3,
+      "loop": false,
+      "bytes": 12384,
+      "lufs": -16.3
+    },
+    {
+      "id": "gull",
+      "path": "audio/sfx/gull.mp3",
+      "kind": "sfx",
+      "duration": 1.48,
+      "loop": false,
+      "bytes": 6336,
+      "lufs": -16.3
+    },
+    {
+      "id": "tokek",
+      "path": "audio/sfx/tokek.mp3",
+      "kind": "sfx",
+      "duration": 5,
+      "loop": false,
+      "bytes": 20448,
+      "lufs": -9.9
+    },
+    {
+      "id": "dog",
+      "path": "audio/sfx/dog.mp3",
+      "kind": "sfx",
+      "duration": 1.48,
+      "loop": false,
+      "bytes": 6336,
+      "lufs": -20.6
+    },
+    {
+      "id": "becak",
+      "path": "audio/sfx/becak.mp3",
+      "kind": "sfx",
+      "duration": 1.2,
+      "loop": false,
+      "bytes": 5184,
+      "lufs": -17.7
+    },
+    {
+      "id": "train_horn",
+      "path": "audio/sfx/train_horn.mp3",
+      "kind": "sfx",
+      "duration": 3.48,
+      "loop": false,
+      "bytes": 14304,
+      "lufs": -11.8
+    },
+    {
+      "id": "crossing_bell",
+      "path": "audio/sfx/crossing_bell.mp3",
+      "kind": "sfx",
+      "duration": 2.96,
+      "loop": false,
+      "bytes": 12288,
+      "lufs": -12.7
+    },
+    {
+      "id": "train_pass",
+      "path": "audio/sfx/train_pass.mp3",
+      "kind": "sfx",
+      "duration": 3.989,
+      "loop": false,
+      "bytes": 16416,
+      "lufs": -18.5
+    },
+    {
+      "id": "steam_chuff",
+      "path": "audio/sfx/steam_chuff.mp3",
+      "kind": "sfx",
+      "duration": 4,
+      "loop": true,
+      "bytes": 16416,
+      "lufs": -15.3
+    },
+    {
+      "id": "bus_hiss",
+      "path": "audio/sfx/bus_hiss.mp3",
+      "kind": "sfx",
+      "duration": 1.1,
+      "loop": false,
+      "bytes": 4800,
+      "lufs": -19
+    },
+    {
+      "id": "rain_loop",
+      "path": "audio/sfx/rain_loop.mp3",
+      "kind": "sfx",
+      "duration": 8,
+      "loop": true,
+      "bytes": 32448,
+      "lufs": -21.8
+    },
+    {
+      "id": "river_loop",
+      "path": "audio/sfx/river_loop.mp3",
+      "kind": "sfx",
+      "duration": 8,
+      "loop": true,
+      "bytes": 32448,
+      "lufs": -19
+    },
+    {
+      "id": "wind_loop",
+      "path": "audio/sfx/wind_loop.mp3",
+      "kind": "sfx",
+      "duration": 8,
+      "loop": true,
+      "bytes": 32448,
+      "lufs": -23
+    },
+    {
+      "id": "sea_loop",
+      "path": "audio/sfx/sea_loop.mp3",
+      "kind": "sfx",
+      "duration": 8,
+      "loop": true,
+      "bytes": 32448,
+      "lufs": -21.5
+    },
+    {
+      "id": "village_loop",
+      "path": "audio/sfx/village_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -16.4
+    },
+    {
+      "id": "traffic_loop",
+      "path": "audio/sfx/traffic_loop.mp3",
+      "kind": "sfx",
+      "duration": 8,
+      "loop": true,
+      "bytes": 32448,
+      "lufs": -17.6
+    },
+    {
+      "id": "market_loop",
+      "path": "audio/sfx/market_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -24.9
+    },
+    {
+      "id": "night_loop",
+      "path": "audio/sfx/night_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -15.7
+    },
+    {
+      "id": "construction_loop",
+      "path": "audio/sfx/construction_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -24
+    },
+    {
+      "id": "flood_loop",
+      "path": "audio/sfx/flood_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -15.2
+    },
+    {
+      "id": "kite_loop",
+      "path": "audio/sfx/kite_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -16
+    },
+    {
+      "id": "rainzinc_loop",
+      "path": "audio/sfx/rainzinc_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -18
+    },
+    {
+      "id": "pump_run_loop",
+      "path": "audio/sfx/pump_run_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -17.5
+    },
+    {
+      "id": "jam_loop",
+      "path": "audio/sfx/jam_loop.mp3",
+      "kind": "sfx",
+      "duration": 10,
+      "loop": true,
+      "bytes": 40416,
+      "lufs": -18.7
+    },
+    {
+      "id": "l1_intro",
+      "path": "audio/voice/l1_intro.mp3",
+      "kind": "voice",
+      "duration": 5.678,
+      "loop": false,
+      "bytes": 28872,
+      "lufs": -18.1
+    },
+    {
+      "id": "l1_win",
+      "path": "audio/voice/l1_win.mp3",
+      "kind": "voice",
+      "duration": 4.358,
+      "loop": false,
+      "bytes": 22272,
+      "lufs": -17.9
+    },
+    {
+      "id": "l2_intro",
+      "path": "audio/voice/l2_intro.mp3",
+      "kind": "voice",
+      "duration": 4.975,
+      "loop": false,
+      "bytes": 25392,
+      "lufs": -18.1
+    },
+    {
+      "id": "l2_win",
+      "path": "audio/voice/l2_win.mp3",
+      "kind": "voice",
+      "duration": 4.216,
+      "loop": false,
+      "bytes": 21552,
+      "lufs": -17.8
+    },
+    {
+      "id": "l3_intro",
+      "path": "audio/voice/l3_intro.mp3",
+      "kind": "voice",
+      "duration": 5.18,
+      "loop": false,
+      "bytes": 26352,
+      "lufs": -17.8
+    },
+    {
+      "id": "l3_win",
+      "path": "audio/voice/l3_win.mp3",
+      "kind": "voice",
+      "duration": 4.381,
+      "loop": false,
+      "bytes": 22392,
+      "lufs": -18
+    },
+    {
+      "id": "l4_intro",
+      "path": "audio/voice/l4_intro.mp3",
+      "kind": "voice",
+      "duration": 5.624,
+      "loop": false,
+      "bytes": 28632,
+      "lufs": -17.8
+    },
+    {
+      "id": "l4_win",
+      "path": "audio/voice/l4_win.mp3",
+      "kind": "voice",
+      "duration": 5.458,
+      "loop": false,
+      "bytes": 27792,
+      "lufs": -18
+    },
+    {
+      "id": "l5_intro",
+      "path": "audio/voice/l5_intro.mp3",
+      "kind": "voice",
+      "duration": 5.244,
+      "loop": false,
+      "bytes": 26712,
+      "lufs": -17.9
+    },
+    {
+      "id": "l5_win",
+      "path": "audio/voice/l5_win.mp3",
+      "kind": "voice",
+      "duration": 5.349,
+      "loop": false,
+      "bytes": 27192,
+      "lufs": -18
+    },
+    {
+      "id": "l6_intro",
+      "path": "audio/voice/l6_intro.mp3",
+      "kind": "voice",
+      "duration": 5.313,
+      "loop": false,
+      "bytes": 27072,
+      "lufs": -18
+    },
+    {
+      "id": "l6_win",
+      "path": "audio/voice/l6_win.mp3",
+      "kind": "voice",
+      "duration": 5.186,
+      "loop": false,
+      "bytes": 26472,
+      "lufs": -18.2
+    },
+    {
+      "id": "l7_intro",
+      "path": "audio/voice/l7_intro.mp3",
+      "kind": "voice",
+      "duration": 5.178,
+      "loop": false,
+      "bytes": 26352,
+      "lufs": -17.8
+    },
+    {
+      "id": "l7_win",
+      "path": "audio/voice/l7_win.mp3",
+      "kind": "voice",
+      "duration": 5.853,
+      "loop": false,
+      "bytes": 29712,
+      "lufs": -18.1
+    },
+    {
+      "id": "l8_intro",
+      "path": "audio/voice/l8_intro.mp3",
+      "kind": "voice",
+      "duration": 5.861,
+      "loop": false,
+      "bytes": 29832,
+      "lufs": -17.8
+    },
+    {
+      "id": "l8_win",
+      "path": "audio/voice/l8_win.mp3",
+      "kind": "voice",
+      "duration": 5.25,
+      "loop": false,
+      "bytes": 26712,
+      "lufs": -17.9
+    },
+    {
+      "id": "l9_intro",
+      "path": "audio/voice/l9_intro.mp3",
+      "kind": "voice",
+      "duration": 5.868,
+      "loop": false,
+      "bytes": 29832,
+      "lufs": -17.8
+    },
+    {
+      "id": "l9_win",
+      "path": "audio/voice/l9_win.mp3",
+      "kind": "voice",
+      "duration": 4.222,
+      "loop": false,
+      "bytes": 21552,
+      "lufs": -17.9
+    },
+    {
+      "id": "l10_intro",
+      "path": "audio/voice/l10_intro.mp3",
+      "kind": "voice",
+      "duration": 5.044,
+      "loop": false,
+      "bytes": 25752,
+      "lufs": -18.1
+    },
+    {
+      "id": "l10_win",
+      "path": "audio/voice/l10_win.mp3",
+      "kind": "voice",
+      "duration": 5.66,
+      "loop": false,
+      "bytes": 28752,
+      "lufs": -18
+    },
+    {
+      "id": "l11_intro",
+      "path": "audio/voice/l11_intro.mp3",
+      "kind": "voice",
+      "duration": 5.195,
+      "loop": false,
+      "bytes": 26472,
+      "lufs": -18
+    },
+    {
+      "id": "l11_win",
+      "path": "audio/voice/l11_win.mp3",
+      "kind": "voice",
+      "duration": 5.862,
+      "loop": false,
+      "bytes": 29832,
+      "lufs": -17.8
+    },
+    {
+      "id": "l12_intro",
+      "path": "audio/voice/l12_intro.mp3",
+      "kind": "voice",
+      "duration": 5.306,
+      "loop": false,
+      "bytes": 27072,
+      "lufs": -18
+    },
+    {
+      "id": "l12_win",
+      "path": "audio/voice/l12_win.mp3",
+      "kind": "voice",
+      "duration": 4.386,
+      "loop": false,
+      "bytes": 22392,
+      "lufs": -18.2
+    },
+    {
+      "id": "l13_intro",
+      "path": "audio/voice/l13_intro.mp3",
+      "kind": "voice",
+      "duration": 5.858,
+      "loop": false,
+      "bytes": 29832,
+      "lufs": -17.9
+    },
+    {
+      "id": "l13_win",
+      "path": "audio/voice/l13_win.mp3",
+      "kind": "voice",
+      "duration": 5.847,
+      "loop": false,
+      "bytes": 29712,
+      "lufs": -17.8
+    },
+    {
+      "id": "l14_intro",
+      "path": "audio/voice/l14_intro.mp3",
+      "kind": "voice",
+      "duration": 4.72,
+      "loop": false,
+      "bytes": 24072,
+      "lufs": -18.1
+    },
+    {
+      "id": "l14_win",
+      "path": "audio/voice/l14_win.mp3",
+      "kind": "voice",
+      "duration": 5.495,
+      "loop": false,
+      "bytes": 27912,
+      "lufs": -18
+    },
+    {
+      "id": "l15_intro",
+      "path": "audio/voice/l15_intro.mp3",
+      "kind": "voice",
+      "duration": 5.218,
+      "loop": false,
+      "bytes": 26592,
+      "lufs": -17.8
+    },
+    {
+      "id": "l15_win",
+      "path": "audio/voice/l15_win.mp3",
+      "kind": "voice",
+      "duration": 5.138,
+      "loop": false,
+      "bytes": 26232,
+      "lufs": -18
+    },
+    {
+      "id": "l16_intro",
+      "path": "audio/voice/l16_intro.mp3",
+      "kind": "voice",
+      "duration": 4.808,
+      "loop": false,
+      "bytes": 24552,
+      "lufs": -18
+    },
+    {
+      "id": "l16_win",
+      "path": "audio/voice/l16_win.mp3",
+      "kind": "voice",
+      "duration": 5.504,
+      "loop": false,
+      "bytes": 28032,
+      "lufs": -18
+    },
+    {
+      "id": "first_build",
+      "path": "audio/voice/first_build.mp3",
+      "kind": "voice",
+      "duration": 5.066,
+      "loop": false,
+      "bytes": 25872,
+      "lufs": -17.9
+    },
+    {
+      "id": "first_harvest",
+      "path": "audio/voice/first_harvest.mp3",
+      "kind": "voice",
+      "duration": 5.686,
+      "loop": false,
+      "bytes": 28872,
+      "lufs": -17.9
+    },
+    {
+      "id": "flood_warning",
+      "path": "audio/voice/flood_warning.mp3",
+      "kind": "voice",
+      "duration": 3.443,
+      "loop": false,
+      "bytes": 17712,
+      "lufs": -17.8
+    },
+    {
+      "id": "quake_warning",
+      "path": "audio/voice/quake_warning.mp3",
+      "kind": "voice",
+      "duration": 3.498,
+      "loop": false,
+      "bytes": 17952,
+      "lufs": -18
+    },
+    {
+      "id": "ash_warning",
+      "path": "audio/voice/ash_warning.mp3",
+      "kind": "voice",
+      "duration": 3.777,
+      "loop": false,
+      "bytes": 19392,
+      "lufs": -17.9
+    },
+    {
+      "id": "wave_warning",
+      "path": "audio/voice/wave_warning.mp3",
+      "kind": "voice",
+      "duration": 2.769,
+      "loop": false,
+      "bytes": 14352,
+      "lufs": -17.9
+    },
+    {
+      "id": "hungry",
+      "path": "audio/voice/hungry.mp3",
+      "kind": "voice",
+      "duration": 4.237,
+      "loop": false,
+      "bytes": 21672,
+      "lufs": -17.9
+    },
+    {
+      "id": "level_lost",
+      "path": "audio/voice/level_lost.mp3",
+      "kind": "voice",
+      "duration": 4.11,
+      "loop": false,
+      "bytes": 21072,
+      "lufs": -17.9
+    },
+    {
+      "id": "train_late",
+      "path": "audio/voice/train_late.mp3",
+      "kind": "voice",
+      "duration": 4.375,
+      "loop": false,
+      "bytes": 22392,
+      "lufs": -18
+    }
+  ]
+}

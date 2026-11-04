@@ -1,0 +1,14 @@
+{
+  "name": "Anu",
+  "short_name": "Anu",
+  "description": "Build a small Indonesian town on a limited grid. Water, mud, ash, wind and ground motion are real physics.",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#fffdf7",
+  "theme_color": "#fffdf7",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

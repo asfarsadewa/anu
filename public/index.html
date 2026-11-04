@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Anu</title>
+<meta name="description" content="Build a small Indonesian town on a limited grid. Water, mud, ash, wind and ground motion are real physics.">
+<meta name="theme-color" content="#fffdf7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta property="og:title" content="Anu">
+<meta property="og:description" content="Build a small Indonesian town on a limited grid. Water, mud, ash, wind and ground motion are real physics.">
+<meta property="og:image" content="og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="anu.css">
+</head>
+<body>
+<canvas id="c" aria-label="The town and the land around it."></canvas>
+
+<header id="hud" hidden>
+  <div id="hud-row">
+    <button id="menu" class="icon-btn" type="button" aria-label="Open the menu"><span class="burger"></span></button>
+    <div class="stat" id="s-people" role="button" tabindex="0"><img alt="People" data-icon="person"><b>0</b><small>/0</small></div>
+    <div class="stat" id="s-rice" role="button" tabindex="0"><img alt="Rice" data-icon="rice"><b>0</b><small>/0</small></div>
+    <div class="stat" id="s-labour" role="button" tabindex="0"><img alt="Labour" data-icon="labour"><b>0</b></div>
+    <button id="mute" class="icon-btn" type="button" aria-pressed="false" aria-label="Sound"><img alt="" data-icon="sound"></button>
+  </div>
+  <button id="goal" type="button"><span id="goal-text"></span></button>
+  <div id="months" role="list"></div>
+</header>
+
+<div id="toasts" aria-live="polite"></div>
+<div id="say" hidden><img id="say-face" alt=""><p><b>Bu Lurah</b><span id="say-text"></span></p></div>
+
+<footer id="tray" hidden>
+  <div id="cards" role="listbox" aria-label="Buildings"></div>
+  <div id="actions">
+    <button id="undo" type="button">Undo</button>
+    <button id="forecast" type="button">Forecast</button>
+    <button id="next" type="button">Next month</button>
+  </div>
+</footer>
+<footer id="runbar" hidden>
+  <div id="run-label"></div>
+  <button id="speed" type="button">Fast</button>
+</footer>
+
+<section id="title" hidden>
+  <canvas id="wordmark" width="10" height="10" aria-label="Anu"></canvas>
+  <p id="title-sub">A town builder set in Indonesia.</p>
+  <div id="ts"></div>
+  <button id="start" type="button">Tap to start</button>
+</section>
+
+<section id="map" hidden>
+  <canvas id="map-c" width="360" height="170" aria-label="Map of Indonesia"></canvas>
+  <ol id="levels"></ol>
+</section>
+
+<dialog id="sheet"></dialog>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

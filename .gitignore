@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+.audio-src/
+.env
+.dev.vars
+.playwright-mcp/
